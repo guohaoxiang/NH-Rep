@@ -1041,9 +1041,9 @@ class ImplicitNetParallelNoMask(nn.Module):
 
         
 
-        # h = self.nested_cvx_output(output_value, self.csg_tree, self.flag_convex)
+        h = self.nested_cvx_output(output_value, self.csg_tree, self.flag_convex)
         # h = self.nested_cvx_output_soft(output_value, self.csg_tree, self.flag_convex)
-        h = self.nested_cvx_output_soft_blend(output_value, self.csg_tree, self.flag_convex)
+        # h = self.nested_cvx_output_soft_blend(output_value, self.csg_tree, self.flag_convex) #blend version
 
 
         

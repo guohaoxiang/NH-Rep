@@ -4424,8 +4424,10 @@ class ReconstructionRunner:
 
         # foldername = conf.get_string('train.foldername').strip()
 
-        ckpt_prefix = '/mnt/sdf1/haog/code/IGR/exps/single_shape/'
-        save_prefix = '/blob/code/IGR/{}/'.format(args.pt)
+        # ckpt_prefix = '/mnt/sdf1/haog/code/IGR/exps/single_shape/'
+        ckpt_prefix = '/mnt/data/haog/code/exps/single_shape/'
+        # ckpt_prefix = 'exps/'
+        save_prefix = '{}/'.format(args.pt)
         if args.aml:
             ckpt_prefix = '/blob/code/exps/single_shape/'
             save_prefix = '/blob/code/IGR/{}/'.format(args.pt)
@@ -5378,6 +5380,7 @@ class ReconstructionRunner:
 
         if is_continue:
             old_checkpnts_dir = os.path.join(self.expdir, self.timestamp, 'checkpoints')
+            print('loading checkpoint from: ', old_checkpnts_dir)
             if args.stage == 2:
                 saved_model_state = torch.load(
                     os.path.join(old_checkpnts_dir, 'ModelParameters', str(kwargs['checkpoint']) + ".pth"))
