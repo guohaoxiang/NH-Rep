@@ -13,9 +13,18 @@ Guo H X, Liu Y, Pan H, Guo B N. NH-Rep: Neural Halfspace Representations for Imp
 Abstract: _We present a novel implicit representation  -- neural halfspace representation (NH-Rep), to convert manifold B-Rep solids to implicit representation. NH-Rep is a Boolean tree built on a set of implicit functions represented by neural network, and the composite Boolean function is capable of representing solid geometry while preserving sharp features. We propose an efficient algorithm to extract the Boolean tree from a Manifold B-Rep solid and devise a neural-network-based optimization approach to compute implicit functions.
 We demonstrate the high quality offered by our conversion algorithm on ten thousand manifold B-Rep CAD models that contain various curved patches including NURBS, and the superiority of our learning approach over other representative implicit conversion algorithms in terms of surface reconstruction, sharp feature preservation, signed distance field approximation, and robustness to various surface geometry, as well as applications supported by NH-Rep._
 
-## Quick Try
+The code has been tested on a Ubuntu 18.04 server with CUDA 10.2 installed.
 
-env setup
+## Quick try
+
+Firstly setup the environment with conda:
+
+        $ conda env create -f environment.yml
+        $ conda activate nhrep
+        
+Then you can convert the points sampled on B-Rep model in _input\_data_ to implicit representation:
+
+        $ python conversion/run.py --conf conversion/setup.conf --pt output_data
 
 train
 
