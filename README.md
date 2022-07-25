@@ -24,11 +24,10 @@ Firstly setup the environment with conda:
         
 Then you can convert the points sampled on B-Rep model in _input\_data_ to implicit representation:
 
-        $ python conversion/run.py --conf conversion/setup.conf --pt output_data
+        $ cd conversion
+        $ python run.py --conf setup.conf --pt output_data
 
-train
-
-evaluate
+Input models are listed in _setup.conf_. And the output pt files are in folder _output\_data_, whose zero surfaces can be extracted using ...
 
 ## Data downloading (to do)
 We provide the pre-processed ABC dataset used for training and evaluating ComplexNet [here](https://pan.baidu.com/s/1PStVn2h_kkKtYsc-LYF7sQ?pwd=asdf), which can be extracted by [7-Zip](https://www.7-zip.org/). You can find the details of pre-processing pipelines in the [supplemental material](https://haopan.github.io/data/ComplexGen_supplemental.zip) of our paper.
@@ -65,3 +64,5 @@ ComplexGen
 *_geom_refine.json: Output of 'geometric refinement' phase, which is also the final output.
 ```
 The description and visualization of each file type can be found in [pickle description](docs/network_prediction_pickle_description.md), [complex description](docs/complex_extraction_complex_description.md) and [json description](docs/geometric_refinement_json_description.md). If you want to directly evaluate the provided output data of ComplexGen, please put the extracted _experiments_ folder under root folder _ComplexGen_, and conduct [Environment setup](https://github.com/guohaoxiang/ComplexGen#environment-setup-with-docker) and [Evaluation](https://github.com/guohaoxiang/ComplexGen#evaluation)
+
+## Evaluation
