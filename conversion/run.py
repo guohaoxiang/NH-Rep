@@ -4425,7 +4425,7 @@ class ReconstructionRunner:
         # foldername = conf.get_string('train.foldername').strip()
 
         ckpt_prefix = '/mnt/sdf1/haog/code/IGR/exps/single_shape/'
-        save_prefix = "/mnt/sdf1/haog/code/IGR/"
+        save_prefix = '/blob/code/IGR/{}/'.format(args.pt)
         if args.aml:
             ckpt_prefix = '/blob/code/exps/single_shape/'
             save_prefix = '/blob/code/IGR/{}/'.format(args.pt)
