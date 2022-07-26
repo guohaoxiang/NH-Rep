@@ -15,27 +15,16 @@ parser.add_argument('--conf', type=str, default='setup.conf')
 parser.add_argument('--expname', type=str, default='single_shape')
 parser.add_argument('--gpu', type=str, default='0', help='GPU to use [default: GPU auto]')
 parser.add_argument('--is_continue', default=False, action="store_true", help='continue')
-parser.add_argument('--timestamp', default='latest', type=str) #not used anymore
 parser.add_argument('--checkpoint', default='latest', type=str)
 parser.add_argument('--eval', default=False, action="store_true")
-parser.add_argument('--evaldist', default=False, action="store_true")
-parser.add_argument('--vismask', default=False, action="store_true")
-parser.add_argument('--test', default=False, action="store_true", help='use test data')
-parser.add_argument('--splitpos', default = -1, type = int, help='for testing the best position for spliting the network')
-parser.add_argument('--summary', default = True, action="store_false", help = 'write summary')
-parser.add_argument('--laplace', default = False, help = 'use laplacian term')
+parser.add_argument('--summary', default = False, action="store_true", help = 'write tensorboard summary')
 parser.add_argument('--baseline', default = False, action="store_true", help = 'run baseline')
-parser.add_argument('--csvm',type=float, default = 1, help = 'c for svm')
 parser.add_argument('--th_closeness',type=float, default = 1e-5, help = 'threshold deciding whether two points are the same')
-parser.add_argument('--onehot', default = False, action="store_true", help = 'set onehot flag as true')
 parser.add_argument('--cpu', default = False, action="store_true", help = 'save for cpu device')
-parser.add_argument('--square', default = False, action="store_true", help = 'use quadratic manifold loss')
-parser.add_argument('--offsurface', default = True, action="store_false", help = 'use assignment loss')
 parser.add_argument('--ab', default='none', type=str, help = 'ablation')
 parser.add_argument('--siren', default = False, action="store_true", help = 'siren normal loss')
 parser.add_argument('--pt', default='ptfile path', type=str) 
 parser.add_argument('--feature_sample', action="store_true", help = 'use feature curve samples')
-parser.add_argument('--lossgrad2', action="store_true", help = 'use feature samples')
 parser.add_argument('--num_feature_sample', type=int, default=2048, help ='number of bs feature samples')
 parser.add_argument('--all_feature_sample', type=int, default=10000, help ='number of all feature samples')
 
@@ -133,9 +122,6 @@ class ReconstructionRunner:
         omega_1 = 1.0
         a = 2
         patch_sup = True
-        # offset_omega = 1.0
-        offset_omega = 0.0
-        offset_sigma = 0.01
         weight_mnfld_h = 1
         weight_mnfld_cs = 1
         weight_correction = 1
@@ -273,10 +259,7 @@ class ReconstructionRunner:
                         mnfld_loss_weight = (mnfld_pred.abs() > mnfld_pred_avg).type(torch.float32)
                         mnfld_loss = (mnfld_loss_weight * mnfld_pred.abs()).sum() / mnfld_loss_weight.sum()
                 else:
-                    if args.square:
-                        mnfld_loss = (mnfld_pred*mnfld_pred).mean()
-                    else:
-                        mnfld_loss = (mnfld_pred.abs()).mean()
+                    mnfld_loss = (mnfld_pred.abs()).mean()
 
             #eta version
             # mask_mfd = mnfld_pred_all[:, n_branch + 1: 2 * n_branch + 1]
@@ -313,51 +296,7 @@ class ReconstructionRunner:
                 #consistency loss:
                 feature_loss_cons = (feature_fis_left - feature_pred).abs().mean() + (feature_fis_right - feature_pred).abs().mean()
                 loss += weight_mnfld_cs *  feature_loss_cons
-            offset_loss = torch.zeros(1).cuda()
 
-            offset_patch_loss = torch.zeros(1).cuda()
-
-
-            if offset_omega > 0.0:
-
-                #for h
-                offset_sigma_array = torch.rand(cur_data.shape[0], 1).cuda() * 2 * offset_sigma - offset_sigma
-                offset_pnts_pos = mnfld_pnts + cur_data[:,self.d_in:] * offset_sigma_array
-                offset_pred_pos = self.network(offset_pnts_pos)
-
-                #mnfld loss
-                offset_loss = offset_loss +  (offset_pred_pos[:,0] - offset_sigma_array).abs().mean()
-                
-                #offset normal loss
-                normals = cur_data[:, -self.d_in:]
-                offset_grad = gradient(offset_pnts_pos, offset_pred_pos[:, 0])
-                offset_loss = offset_loss + (((offset_grad - normals).abs()).norm(2, dim=1)).mean()
-
-                loss = loss + offset_omega * offset_loss
-
-                # offset_grad_neg = gradient(offset_pnts_neg, offset_pred_neg)
-                # offset_loss = offset_loss + (((offset_grad_neg - normals).abs()).norm(2, dim=1)).mean()
-
-                #for all patch
-                
-                offset_all_fi = torch.zeros(n_batchsize, 1).cuda()
-                for i in range(n_branch - 1):
-                    offset_all_fi[i * n_patch_batch : (i + 1) * n_patch_batch, 0] = offset_pred_pos[i * n_patch_batch : (i + 1) * n_patch_batch, i + 1]
-                #last patch
-                offset_all_fi[(n_branch - 1) * n_patch_batch:, 0] = offset_pred_pos[(n_branch - 1) * n_patch_batch:, n_branch]
-
-                #manifold loss
-                offset_patch_loss = offset_patch_loss +  (offset_all_fi - offset_sigma_array).abs().mean()
-                
-                #offset normal loss
-                normals = cur_data[:, -self.d_in:]
-                offset_grad_all = gradient(offset_pnts_pos, offset_all_fi)
-                offset_patch_loss = offset_patch_loss + (((offset_grad_all - normals).abs()).norm(2, dim=1)).mean()
-                loss = loss + offset_omega * offset_patch_loss
-
-
-
-            # all_fi = torch.zeros(n_batchsize, 1).cuda()
             all_fi = torch.zeros([n_batchsize, 1], device = 'cuda')
             for i in range(n_branch - 1):
                 all_fi[i * n_patch_batch : (i + 1) * n_patch_batch, 0] = mnfld_pred_all[i * n_patch_batch : (i + 1) * n_patch_batch, i + 1]
@@ -370,11 +309,7 @@ class ReconstructionRunner:
             mnfld_loss_patch = torch.zeros(1).cuda()
             if not args.ab == 'patch':
                 if patch_sup:
-                    if args.square:
-                        mnfld_loss_patch = (all_fi[:,0] * all_fi[:,0]).mean()
-                    else:
-                        mnfld_loss_patch = all_fi[:,0].abs().mean()
-                    # mnfld_loss_patch = (all_fi[:,0]*all_fi[:,0]).mean()
+                    mnfld_loss_patch = all_fi[:,0].abs().mean()
             loss = loss + mnfld_loss_patch
 
             #correction loss
@@ -388,17 +323,13 @@ class ReconstructionRunner:
 
             #off surface_loss
             offsurface_loss = torch.zeros(1).cuda()
-            if not args.ab == 'off' and  args.offsurface:
-                # nonmnfld_pred = nonmnfld_pred_all[:,0]
+            if not args.ab == 'off':
                 offsurface_loss = torch.exp(-100.0 * torch.abs(nonmnfld_pred[n_batchsize:])).mean()
                 loss = loss + offsurface_loss
 
             mnfld_consistency_loss = torch.zeros(1).cuda()
             if not (args.ab == 'cons' or args.ab == 'cc'):
-                if  args.square:
-                    mnfld_consistency_loss = ((mnfld_pred - all_fi[:,0]) * (mnfld_pred - all_fi[:,0])).mean()
-                else:
-                    mnfld_consistency_loss = (mnfld_pred - all_fi[:,0]).abs().mean()
+                mnfld_consistency_loss = (mnfld_pred - all_fi[:,0]).abs().mean()
             loss = loss + weight_mnfld_cs *  mnfld_consistency_loss
 
 
@@ -455,7 +386,6 @@ class ReconstructionRunner:
                     loss = loss + self.normals_lambda * normals_loss_h
             else:
                 #compute consine normal
-                # normals_loss_h = (((mnfld_grad - normals).abs()).norm(2, dim=1)).mean()
                 normals = cur_data[:, -self.d_in:]
                 normals_loss_h = (1 - F.cosine_similarity(mnfld_grad, normals, dim=-1)).mean()
                 loss = loss + self.normals_lambda * normals_loss_h
@@ -487,44 +417,15 @@ class ReconstructionRunner:
                 writer.add_scalar('Loss/Normal loss all', self.normals_lambda * normals_loss.item(), epoch)
                 writer.add_scalar('Loss/Normal loss h', self.normals_lambda * normals_loss_h.item(), epoch)
                 writer.add_scalar('Loss/Normal cs loss', self.normals_lambda * normal_consistency_loss.item(), epoch)
-                writer.add_scalar('Loss/Offset loss h', offset_omega * offset_loss.item(), epoch)
-                writer.add_scalar('Loss/Offset loss patch', offset_omega * offset_patch_loss.item(), epoch)
                 writer.add_scalar('Loss/Assignment loss', correction_loss.item(), epoch)
                 writer.add_scalar('Loss/Offsurface loss', offsurface_loss.item(), epoch)
 
 
-                # writer.add_scalar('Loss/mask loss', omega_1 * mask_loss.item(), epoch)
-                # writer.add_scalar('Loss/mask expectation', omega_3 * mask_expectation.item(), epoch)
-                # writer.add_scalar('Loss/assignment_loss', assignment_loss.item(), epoch)
-                # writer.add_scalar('Loss/G dist', g_dist.item(), epoch)
-                # writer.add_scalar('Loss/FG diff', fg_diff_dist, epoch)
-                # writer.add_scalar('Loss/Non-feature repulsion', non_feature_repulsion_loss, epoch)
-                # writer.add_scalar('Loss/vertical loss', verticle_loss, epoch)
-                # if args.laplace:
-                #     writer.add_scalar('Loss/laplacian f', f_laplacian, epoch)
-                #     writer.add_scalar('Loss/laplacian g', g_laplacian, epoch)
-
             if epoch % self.conf.get_int('train.status_frequency') == 0:
-                # print('Train Epoch: [{}/{} ({:.0f}%)]\tTrain Loss: {:.6f}\tManifold loss: {:.6f}'
-                #     '\tGrad loss: {:.6f}\tNormals Loss: {:.6f}\t f loss: {:.6f}\t g loss: {:.6f}'.format(
-                #     epoch, self.nepochs, 100. * epoch / self.nepochs,
-                #     loss.item(), mnfld_loss.item(), grad_loss.item(), normals_loss.item(), f_dist.item(), g_dist.item()))
-                # print('fg diff loss: {:.6f}'.format(fg_diff_dist.item()))
-                # print('Repulsion Loss: {:.6f}'.format(non_feature_repulsion_loss.item()))
-                # print('verticle_loss: {:.6f}'.format(verticle_loss.item()))
-                # if args.laplace:
-                #     print('laplacian f & g: {:.6f}\t {:.6f}'.format(f_laplacian, g_laplacian))
-                # print('a: {:.6f}\t beta_3: {:.6f}'.format(a, beta_3_init))
                 print('Train Epoch: [{}/{} ({:.0f}%)]\tTrain Loss: {:.6f}\t Manifold loss: {:.6f}'
-                    '\tManifold patch loss: {:.6f}\t grad loss all: {:.6f}\t grad loss h: {:.6f}\t normals loss all: {:.6f}\t normals loss h: {:.6f}'.format(
+                    '\tManifold patch loss: {:.6f}\t grad loss all: {:.6f}\t grad loss h: {:.6f}\t normals loss all: {:.6f}\t normals loss h: {:.6f}\t Manifold consistency loss: {:.6f}\tCorrection loss: {:.6f}\t Offsurface loss: {:.6f}'.format(
                     epoch, self.nepochs, 100. * epoch / self.nepochs,
-                    loss.item(), mnfld_loss.item(), mnfld_loss_patch.item(), grad_loss.item(), grad_loss_h.item(), normals_loss.item(), normals_loss_h.item()))
-                print ("offset loss: ", offset_loss.item())
-                print ("offset patch loss: ", offset_patch_loss.item())
-                print ("mnfld consistency loss: ", mnfld_consistency_loss.item())
-                print ('correction loss: ', correction_loss.item())
-                print ('offsurface_loss loss: ', offsurface_loss.item())
-                
+                    loss.item(), mnfld_loss.item(), mnfld_loss_patch.item(), grad_loss.item(), grad_loss_h.item(), normals_loss.item(), normals_loss_h.item(), mnfld_consistency_loss.item(), correction_loss.item(), offsurface_loss.item()))
                 if args.feature_sample:
                     print('feature mnfld loss: {} patch loss: {} cons loss: {}'.format(feature_mnfld_loss.item(), feature_loss_patch.item(), feature_loss_cons.item()))
 
@@ -618,7 +519,6 @@ class ReconstructionRunner:
         self.GPU_INDEX = kwargs['gpu_index']
         self.num_of_gpus = torch.cuda.device_count()
         self.eval = kwargs['eval']
-        self.evaldist = kwargs['evaldist']
 
         self.exps_folder_name = 'exps'
         utils.mkdir_ifnotexists(utils.concat_home_dir(os.path.join(self.home_dir, self.exps_folder_name)))
@@ -626,18 +526,10 @@ class ReconstructionRunner:
         utils.mkdir_ifnotexists(self.expdir)
 
         if not flag_list:
-            if args.test:
-                self.input_file = self.conf.get_string('train.input_path')
-                self.input_file = self.input_file[:-4] + "_test.xyz"
-                self.data = utils.load_point_cloud_by_file_extension(self.input_file)
-                self.feature_mask_file = self.conf.get_string('train.feature_mask_path')
-                self.feature_mask_file = self.feature_mask_file[:-4] + "_test.txt"
-                self.feature_mask = utils.load_feature_mask(self.feature_mask_file)
-            else:
-                self.input_file = self.conf.get_string('train.input_path')
-                self.data = utils.load_point_cloud_by_file_extension(self.input_file)
-                self.feature_mask_file = self.conf.get_string('train.feature_mask_path')
-                self.feature_mask = utils.load_feature_mask(self.feature_mask_file)
+            self.input_file = self.conf.get_string('train.input_path')
+            self.data = utils.load_point_cloud_by_file_extension(self.input_file)
+            self.feature_mask_file = self.conf.get_string('train.feature_mask_path')
+            self.feature_mask = utils.load_feature_mask(self.feature_mask_file)
         else:
             self.input_file = os.path.join(self.conf.get_string('train.input_path'), kwargs['file_prefix']+'.xyz')
             if not os.path.exists(self.input_file):
@@ -833,11 +725,8 @@ if __name__ == '__main__':
             expname=args.expname,
             gpu_index=gpu,
             is_continue=args.is_continue,
-            timestamp=args.timestamp,
             checkpoint=args.checkpoint,
             eval=args.eval,
-            splitpos = args.splitpos,
-            evaldist = args.evaldist, 
             flag_list = True
             )
             )
