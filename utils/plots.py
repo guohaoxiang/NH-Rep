@@ -5,10 +5,6 @@ import numpy as np
 from skimage import measure
 import os
 import utils.general as utils
-import matplotlib.pyplot as plt
-import matplotlib.cm as cm
-import matplotlib.image as mpimg
-from conversion.save_implicit_function_vtk import save_implicit_function_vtk
 
 def get_threed_scatter_trace(points,caption = None,colorscale = None,color = None):
 
@@ -51,7 +47,6 @@ def get_threed_scatter_trace(points,caption = None,colorscale = None,color = Non
 
     return trace
 
-
 def plot_threed_scatter(points,path,epoch,in_epoch):
     trace = get_threed_scatter_trace(points)
     layout = go.Layout(width=1200, height=1200, scene=dict(xaxis=dict(range=[-2, 2], autorange=False),
@@ -63,7 +58,6 @@ def plot_threed_scatter(points,path,epoch,in_epoch):
 
     filename = '{0}/scatter_iteration_{1}_{2}.html'.format(path, epoch, in_epoch)
     offline.plot(fig1, filename=filename, auto_open=False)
-
 
 def plot_surface(decoder,path,epoch, shapename,resolution,mc_value,is_uniform_grid,verbose,save_html,save_ply,overwrite, points=None, with_points=False, latent=None, connected=False, suffix = "all"):
 
@@ -100,7 +94,6 @@ def plot_surface(decoder,path,epoch, shapename,resolution,mc_value,is_uniform_gr
         if (not surface['mesh_export'] is None):
             surface['mesh_export'].export(filename + suffix + '.ply', 'ply')
         return surface['mesh_export']
-
 
 def get_surface_trace(points,decoder,latent,resolution,mc_value,is_uniform,verbose,save_ply, connected=False):
 
@@ -164,7 +157,6 @@ def get_surface_trace(points,decoder,latent,resolution,mc_value,is_uniform,verbo
     #trace and export are the same
     return {"mesh_trace":trace,
             "mesh_export":meshexport}
-
 
 def plot_cuts_axis(points,decoder,latent,path,epoch,near_zero,axis,file_name_sep='/'):
     onedim_cut = np.linspace(-1.0, 1.0, 200)
@@ -252,271 +244,6 @@ def plot_cuts_axis(points,decoder,latent,path,epoch,near_zero,axis,file_name_sep
         # fig1 = go.Figure(data=[trace1], layout=layout)
         fig1.write_image(filename.replace('.html', '.png'))
 
-
-def plot_cuts(points,decoder,path,epoch,near_zero,latent=None, suffix = "all"):
-    onedim_cut = np.linspace(-1, 1, 200)
-    # onedim_cut = np.linspace(-1, 1, 500)
-
-    # onedim_cut = np.linspace(-1, 1, 1000) #modified on 20201101
-    xx, yy = np.meshgrid(onedim_cut, onedim_cut)
-    xx = xx.ravel()
-    yy = yy.ravel()
-    min_y = points[:,-2].min(dim=0)[0].item()
-    max_y = points[:,-2].max(dim=0)[0].item()
-    position_cut = np.vstack(([xx, np.zeros(xx.shape[0]), yy]))
-    position_cut = [position_cut + np.array([0., i, 0.]).reshape(-1, 1) for i in np.linspace(min_y - 0.1, max_y + 0.1, 10)]
-    for index, pos in enumerate(position_cut):
-        #fig = tools.make_subplots(rows=1, cols=1)
-        field_input = torch.tensor(pos.T, dtype=torch.float).cuda()
-        z = []
-        for i, pnts in enumerate(torch.split(field_input, 1000, dim=-1)):
-            input_=pnts
-            if (not latent is None):
-                input_ = torch.cat([latent.expand(pnts.shape[0],-1) ,pnts],dim=1)
-            z.append(decoder(input_).detach().cpu().numpy())
-            # z.append(decoder(input_)[:,0].detach().cpu().numpy())
-        z = np.concatenate(z, axis=0)
-
-        if (near_zero):
-            trace1 = go.Contour(x=onedim_cut,
-                                y=onedim_cut,
-                                z=z.reshape(onedim_cut.shape[0], onedim_cut.shape[0]),
-                                name='y = {0}'.format(pos[1, 0]),  # colorbar=dict(len=0.4, y=0.8),
-                                autocontour=False,
-                                contours=dict(
-                                     start=-0.001,
-                                     end=0.001,
-                                     size=0.00001
-                                     )
-                                # ),colorbar = {'dtick': 0.05}
-                                )
-        else:
-            # trace1 = go.Contour(x=onedim_cut,
-            #                     y=onedim_cut,
-            #                     z=z.reshape(onedim_cut.shape[0], onedim_cut.shape[0]),
-            #                     name='y = {0}'.format(pos[1, 0]),  # colorbar=dict(len=0.4, y=0.8),
-            #                     autocontour=True,
-            #                     # contours=dict(
-            #                     #      start=-0.001,
-            #                     #      end=0.001,
-            #                     #      size=0.00001
-            #                     #      )
-            #                     # ),colorbar = {'dtick': 0.05}
-            #                     )
-            trace1 = go.Contour(x=onedim_cut,
-                                y=onedim_cut,
-                                z=z.reshape(onedim_cut.shape[0], onedim_cut.shape[0]),
-                                name='y = {0}'.format(pos[1, 0]),  # colorbar=dict(len=0.4, y=0.8),
-                                autocontour=False,
-                                contours=dict(
-                                     start=-0.8,
-                                     end=0.8,
-                                     size=0.2
-                                     )
-                                # ),colorbar = {'dtick': 0.05}
-                                )
-
-
-        layout = go.Layout(width=1200, height=1200, scene=dict(xaxis=dict(range=[-1, 1], autorange=False),
-                                                               yaxis=dict(range=[-1, 1], autorange=False),
-                                                               aspectratio=dict(x=1, y=1)),
-                           title=dict(text='y = {0}'.format(pos[1, 0])))
-        # fig['layout']['xaxis2'].update(range=[-1, 1])
-        # fig['layout']['yaxis2'].update(range=[-1, 1], scaleanchor="x2", scaleratio=1)
-        utils.mkdir_ifnotexists(path)
-        filename = '{0}/cuts{1}_{2}'.format(path, epoch, index) + suffix + '.html'
-        fig1 = go.Figure(data=[trace1], layout=layout)
-        fig1.write_image('{0}/cuts{1}_{2}'.format(path, epoch, index) + suffix + '.png')
-        #save html
-        # offline.plot(fig1, filename=filename, auto_open=False)
-    
-        # save contour, resolution is too low
-        # X, Y = np.meshgrid(onedim_cut, onedim_cut)
-        # fig = plt.figure()
-        # surf1 = plt.contourf(X, Y, z.reshape(onedim_cut.shape[0], onedim_cut.shape[0]))
-        # plt.contour(X, Y, z.reshape(onedim_cut.shape[0], onedim_cut.shape[0]))
-        # fig.colorbar(surf1)
-        # plt.savefig('{0}/cuts{1}_{2}'.format(path, epoch, index) + suffix + '.png', dpi = 100)
-
-def plot_masks(points,decoder, n_branch, path,epoch,latent=None, suffix = "all"):
-    # output type should be zero
-    # onedim_cut = np.linspace(-1, 1, 200)
-    onedim_cut = np.linspace(-1, 1, 500) #modified on 20201101
-    xx, yy = np.meshgrid(onedim_cut, onedim_cut)
-    xx = xx.ravel()
-    yy = yy.ravel()
-    min_y = points[:,-2].min(dim=0)[0].item()
-    max_y = points[:,-2].max(dim=0)[0].item()
-    position_cut = np.vstack(([xx, np.zeros(xx.shape[0]), yy]))
-    position_cut = [position_cut + np.array([0., i, 0.]).reshape(-1, 1) for i in np.linspace(min_y - 0.1, max_y + 0.1, 10)]
-    
-    branch_color = []
-    if n_branch == 1:
-        branch_color.append(cm.plasma(0.0))
-    else:
-        for i in range(n_branch):
-            # branch_color.append(cm.hot(i / n_branch))
-            branch_color.append(cm.plasma(i / (n_branch - 1)))
-
-    branch_color = np.concatenate(branch_color, axis = 0)
-    branch_color = branch_color.reshape(-1,4)
-
-    for index, pos in enumerate(position_cut):
-        #fig = tools.make_subplots(rows=1, cols=1)
-
-        field_input = torch.tensor(pos.T, dtype=torch.float).cuda()
-        img = []
-        img_onehot = []
-        z = []
-        for i, pnts in enumerate(torch.split(field_input, 1000, dim=-1)):
-            input_=pnts
-            if (not latent is None):
-                input_ = torch.cat([latent.expand(pnts.shape[0],-1) ,pnts],dim=1)
-            mask_feature = decoder(input_).detach()[:, n_branch + 1: 2 * n_branch + 1]
-            mask_feature_np = mask_feature.cpu().numpy()
-            maxid = np.argmax(mask_feature_np, 1)
-            mask_feature_onehot = np.zeros_like(mask_feature_np)
-            mask_feature_onehot[np.arange(mask_feature_np.shape[0]), maxid] = 1.0
-
-            z.append(mask_feature.argmax(dim=1).unsqueeze(1).cpu().numpy())
-            img.append(np.matmul(mask_feature_np, branch_color))
-            img_onehot.append(np.matmul(mask_feature_onehot, branch_color))
-            # z.append(decoder(input_)[:,0].detach().cpu().numpy())
-        z = np.concatenate(z, axis=0)
-        img = np.concatenate(img, axis = 0).reshape(onedim_cut.shape[0],onedim_cut.shape[0],4)[::-1]
-        img_onehot = np.concatenate(img_onehot, axis = 0).reshape(onedim_cut.shape[0],onedim_cut.shape[0],4)[::-1]
-        # print ("img max: ", img.max())
-        # img = img / img.max()
-        img[img>1.0] = 1.0
-
-        #go version
-        # trace1 = go.Contour(x=onedim_cut,
-        #                     y=onedim_cut,
-        #                     z=z.reshape(onedim_cut.shape[0], onedim_cut.shape[0]),
-        #                     name='y = {0}'.format(pos[1, 0]),  # colorbar=dict(len=0.4, y=0.8),
-        #                     autocontour=False,
-        #                     contours=dict(
-        #                          start=-0.5,
-        #                          end=n_branch,
-        #                          size=1
-        #                          )
-        #                     # ),colorbar = {'dtick': 0.05}
-        #                     )
-
-        # layout = go.Layout(width=1200, height=1200, scene=dict(xaxis=dict(range=[-1, 1], autorange=False),
-        #                                                        yaxis=dict(range=[-1, 1], autorange=False),
-        #                                                        aspectratio=dict(x=1, y=1)),
-        #                    title=dict(text='y = {0}'.format(pos[1, 0])))
-        # # fig['layout']['xaxis2'].update(range=[-1, 1])
-        # # fig['layout']['yaxis2'].update(range=[-1, 1], scaleanchor="x2", scaleratio=1)
-        # utils.mkdir_ifnotexists(path)
-        # filename = '{0}/cuts{1}_{2}'.format(path, epoch, index) + suffix + '.html'
-        # fig1 = go.Figure(data=[trace1], layout=layout)
-        # offline.plot(fig1, filename=filename, auto_open=False)
-        utils.mkdir_ifnotexists(path)
-        plt.imsave('{0}/cuts{1}_{2}'.format(path, epoch, index) + suffix + '.png' ,img)
-        plt.imsave('{0}/cuts{1}_{2}'.format(path, epoch, index) + suffix + '_onehot.png' ,img_onehot)
-        # figurename = '{0}/cuts{1}_{2}'.format(path, epoch, index) + suffix + '.png'
-        # fig1.write_image(figurename)
-        # save contour, resolution is too low
-        # X, Y = np.meshgrid(onedim_cut, onedim_cut)
-        # fig = plt.figure()
-        # surf1 = plt.contourf(X, Y, z.reshape(onedim_cut.shape[0], onedim_cut.shape[0]))
-        # plt.contour(X, Y, z.reshape(onedim_cut.shape[0], onedim_cut.shape[0]))
-        # fig.colorbar(surf1)
-        # plt.savefig('{0}/cuts{1}_{2}'.format(path, epoch, index) + suffix + '.png', dpi = 100)
-
-    #save vtk file 
-    res = 128
-    mg = np.meshgrid(np.linspace(-1, 1, res), np.linspace(-1, 1, res), np.linspace(-1, 1, res), indexing='ij')
-    grid_pts = np.concatenate((mg[2].reshape(-1,1), mg[1].reshape(-1,1), mg[0].reshape(-1,1)), axis=1)
-    # np.savetxt('grid_pts.xyz', grid_pts)
-    # grid_predict = clf.predict(grid_pts)  
-    grid_pts_tensor = torch.tensor(grid_pts, dtype=torch.float).cuda()
-    grid_predict = []
-    for pts in torch.split(grid_pts_tensor, 1000):
-        mask_feature = decoder(pts).detach()[:, n_branch + 1: 2 * n_branch + 1]
-        grid_predict.append(mask_feature.argmax(dim=1).unsqueeze(1).cpu().numpy())
-    grid_predict = np.concatenate(grid_predict, axis=0)
-    save_implicit_function_vtk(grid_predict.reshape(-1), '{0}/mask.vtk'.format(path))
-
-def plot_masks_maxsdf(points,decoder, n_branch, path,epoch,latent=None, suffix = "all"):
-    # output type should be zero
-    # onedim_cut = np.linspace(-1, 1, 200)
-    onedim_cut = np.linspace(-1, 1, 500) #modified on 20201101
-    xx, yy = np.meshgrid(onedim_cut, onedim_cut)
-    xx = xx.ravel()
-    yy = yy.ravel()
-    min_y = points[:,-2].min(dim=0)[0].item()
-    max_y = points[:,-2].max(dim=0)[0].item()
-    position_cut = np.vstack(([xx, np.zeros(xx.shape[0]), yy]))
-    position_cut = [position_cut + np.array([0., i, 0.]).reshape(-1, 1) for i in np.linspace(min_y - 0.1, max_y + 0.1, 10)]
-    
-    # branch_color = []
-    # if n_branch == 1:
-    #     branch_color.append(cm.plasma(0.0))
-    # else:
-    #     for i in range(n_branch):
-    #         # branch_color.append(cm.hot(i / n_branch))
-    #         branch_color.append(cm.plasma(i / (n_branch - 1)))
-    # branch_color = np.concatenate(branch_color, axis = 0)
-    # branch_color = branch_color.reshape(-1,4)
-    #mask color
-    mask_color = []
-    for i in range(3):
-        mask_color.append(cm.plasma(i / 2))
-    mask_color = np.concatenate(mask_color, axis = 0)
-    mask_color = mask_color.reshape(-1,4)
-
-    for index, pos in enumerate(position_cut):
-        #fig = tools.make_subplots(rows=1, cols=1)
-        field_input = torch.tensor(pos.T, dtype=torch.float).cuda()
-        imgs = []
-        for i in range(n_branch):
-            imgs.append([])
-        # img_onehot = []
-        # z = []
-        for i, pnts in enumerate(torch.split(field_input, 1000, dim=-1)):
-            input_=pnts
-            if (not latent is None):
-                input_ = torch.cat([latent.expand(pnts.shape[0],-1) ,pnts],dim=1)
-            mask_feature = decoder(input_).detach()[:, n_branch + 1:]
-            assert(mask_feature.shape[1] == 3 * n_branch)
-            mask_feature_np = mask_feature.cpu().numpy()
-            # maxid = np.argmax(mask_feature_np, 1)
-            # mask_feature_onehot = np.zeros_like(mask_feature_np)
-            # mask_feature_onehot[np.arange(mask_feature_np.shape[0]), maxid] = 1.0
-
-            # z.append(mask_feature.argmax(dim=1).unsqueeze(1).cpu().numpy())
-            # img.append(np.matmul(mask_feature_np, branch_color))
-            for j in range(n_branch):
-                imgs[j].append(np.matmul(mask_feature_np[:, 3 * j: 3 * (j + 1)], mask_color))
-            # img_onehot.append(np.matmul(mask_feature_onehot, branch_color))
-            # z.append(decoder(input_)[:,0].detach().cpu().numpy())
-        # z = np.concatenate(z, axis=0)
-        for i in range(n_branch):
-            imgs[i] = np.concatenate(imgs[i], axis = 0).reshape(onedim_cut.shape[0],onedim_cut.shape[0],4)[::-1]
-            imgs[i][imgs[i]>1.0] = 1.0
-            utils.mkdir_ifnotexists(path)
-            plt.imsave('{0}/cuts{1}_{2}_b{3}'.format(path, epoch, index, i) + suffix + '.png' ,imgs[i])
-        # img = np.concatenate(img, axis = 0).reshape(onedim_cut.shape[0],onedim_cut.shape[0],4)[::-1]
-        # img_onehot = np.concatenate(img_onehot, axis = 0).reshape(onedim_cut.shape[0],onedim_cut.shape[0],4)[::-1]
-        # print ("img max: ", img.max())
-        # img = img / img.max()
-        # img[img>1.0] = 1.0
-        # utils.mkdir_ifnotexists(path)
-        # plt.imsave('{0}/cuts{1}_{2}'.format(path, epoch, index) + suffix + '.png' ,img)
-        # plt.imsave('{0}/cuts{1}_{2}'.format(path, epoch, index) + suffix + '_onehot.png' ,img_onehot)
-        # figurename = '{0}/cuts{1}_{2}'.format(path, epoch, index) + suffix + '.png'
-        # fig1.write_image(figurename)
-        # save contour, resolution is too low
-        # X, Y = np.meshgrid(onedim_cut, onedim_cut)
-        # fig = plt.figure()
-        # surf1 = plt.contourf(X, Y, z.reshape(onedim_cut.shape[0], onedim_cut.shape[0]))
-        # plt.contour(X, Y, z.reshape(onedim_cut.shape[0], onedim_cut.shape[0]))
-        # fig.colorbar(surf1)
-        # plt.savefig('{0}/cuts{1}_{2}'.format(path, epoch, index) + suffix + '.png', dpi = 100)
-
 def get_grid(points,resolution):
     eps = 0.1
     input_min = torch.min(points, dim=0)[0].squeeze().cpu().numpy()
@@ -548,7 +275,6 @@ def get_grid(points,resolution):
             "shortest_axis_length":length,
             "xyz":[x,y,z],
             "shortest_axis_index":shortest_axis}
-
 
 def get_grid_uniform(resolution):
     x = np.linspace(-1.2,1.2, resolution)

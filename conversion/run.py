@@ -1,7 +1,6 @@
 import os
 import sys
 import time
-import trimesh
 project_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
 sys.path.append(project_dir)
 os.chdir(project_dir)
@@ -30,74 +29,18 @@ parser.add_argument('--all_feature_sample', type=int, default=10000, help ='numb
 
 args = parser.parse_args()
 
-import os
-# os.environ["CUDA_VISIBLE_DEVICES"] = '3'
 os.environ["CUDA_VISIBLE_DEVICES"] = '{0}'.format(args.gpu)
-
-from datetime import datetime
 from pyhocon import ConfigFactory
 import numpy as np
 import GPUtil
 import torch
-import torch.nn as nn
 import utils.general as utils
 from model.sample import Sampler
 from model.network import gradient
 from scipy.spatial import cKDTree
-from utils.plots import plot_surface, plot_cuts, plot_masks, plot_masks_maxsdf, plot_cuts_axis
+from utils.plots import plot_surface, plot_cuts_axis
 from torch.utils.tensorboard import SummaryWriter
-from torchsummary import summary
-
-from plywrite import save_vert_color_ply, save_vertnormal_color_ply
-import matplotlib.cm as cm
-from numpy import linalg as LA
 import torch.nn.functional as F
-
-def generate_random_color_palette(n_color, flag_partnet = False):
-    if flag_partnet:
-        np.random.seed(1)
-    else:
-        np.random.seed(0)
-    return np.random.rand(n_color, 3)
-
-def save_mesh_off(filename, vertices, faces, f_mask):
-    n_color = np.max(f_mask) + 1
-    print('n color: ', n_color)
-    colormap = np.round(255 * generate_random_color_palette(n_color)).astype('int')
-    f = open(filename, 'w')
-    f.write('COFF\n{} {} 0\n'.format(vertices.shape[0], faces.shape[0]))
-    for i in range(vertices.shape[0]):
-        f.write('{} {} {}\n'.format(vertices[i][0],vertices[i][1],vertices[i][2]))
-    for i in range(faces.shape[0]):
-        f.write('3 {} {} {} '.format(faces[i][0], faces[i][1], faces[i][2]))
-        if f_mask[i] == -1:
-            f.write('255 255 255\n')
-        else:
-            f.write('{} {} {}\n'.format(colormap[f_mask[i]][0], colormap[f_mask[i]][1], colormap[f_mask[i]][2]))
-        # f.write('3 {} {} {}\n'.format(faces[i][0], faces[i][1], faces[i][2]))
-
-
-def save_ply_data_numpy(filename, array):
-    f = open(filename, 'w')
-    f.write('ply\nformat ascii 1.0\nelement vertex {:d}\nproperty float x\nproperty float y\nproperty float z\nproperty float nx\nproperty float ny\nproperty float nz\nproperty uchar red\nproperty uchar green\nproperty uchar blue\nproperty float opacity\nelement face 0\nproperty list uchar int vertex_indices\nend_header\n'.format(array.shape[0]))
-    for i in range(array.shape[0]):
-        for j in range(6):
-            f.write("{:f} ".format(array[i][j]))
-        for j in range(3):
-            f.write("{:d} ".format(int(array[i][j+6])))
-        f.write('{:f}\n'.format(array[i][9]))
-    f.close()
-
-def visualize_ptnormal_loss(filename, ptnormal, loss, flag_exp = False):
-    loss = (loss - np.min(loss))/(np.max(loss) - np.min(loss) + 1e-6)
-    loss = loss.reshape(-1,1)
-    # print ('loss shape ', loss.shape)
-    if flag_exp:
-        loss = np.exp(loss)
-        loss = (loss - np.min(loss))/(np.max(loss) - np.min(loss))
-    pt_color = loss * np.array([255, 0, 0]) + (1.0 - loss) * np.array([255, 255, 255])
-    plydata = np.concatenate([ptnormal, pt_color, np.ones([ptnormal.shape[0], 1])], 1)
-    save_ply_data_numpy(filename, plydata)
 
 class ReconstructionRunner:
     def run_nhrepnet_training(self):
@@ -106,75 +49,39 @@ class ReconstructionRunner:
         self.data.requires_grad_()
         feature_mask_cpu = self.feature_mask.numpy()
         self.feature_mask = self.feature_mask.cuda()
-        # n_patch_batch = 2048
-        # n_feature_batch = 2048
-        # n_batchsize = n_feature_batch + n_branch * n_patch_batch
         n_branch = int(torch.max(self.feature_mask).item())
         n_batchsize = self.points_batch
         n_patch_batch = n_batchsize // n_branch
-        # n_feature_batch = n_batchsize - n_patch_batch * n_branch
         n_patch_last = n_batchsize - n_patch_batch * (n_branch - 1)
-        print("patch batch & last patch batch: ", n_patch_batch, n_patch_last)
-        print('number of branches: ', n_branch)
-        
 
-        #first non feature then feature elements
-        omega_1 = 1.0
-        a = 2
         patch_sup = True
         weight_mnfld_h = 1
         weight_mnfld_cs = 1
         weight_correction = 1
         a_correction = 100
-        flag_eta = False
-        eta = 0.0
 
-
-        # print ("feature mask shape: ", feature_mask_cpu.shape)
         patch_id = []
         patch_id_n = []
         for i in range(n_branch):
             patch_id = patch_id + [np.where(feature_mask_cpu == i + 1)[0]]
             patch_id_n = patch_id_n + [patch_id[i].shape[0]]
         if self.eval:
-            #to be changed
             print("evaluating epoch: {0}".format(self.startepoch))
             my_path = os.path.join(self.cur_exp_dir, 'evaluation', str(self.startepoch))
-
             utils.mkdir_ifnotexists(os.path.join(self.cur_exp_dir, 'evaluation'))
             utils.mkdir_ifnotexists(my_path)
-            self.network.flag_softmax = True
-            # for i in range(n_branch + 1):            
-            # for i in range(n_branch + 2):  #for testing
             for i in range(1):            
                 self.network.flag_output = i + 1
                 self.plot_shapes(epoch=self.startepoch, path=my_path, file_suffix = "_" + str(i), with_cuts = True)
             self.network.flag_output = 0
-            # self.plot_masks_maxsdf(epoch=self.startepoch, path=my_path, n_branch = n_branch, file_suffix = "_mask" + str(i))
-
-            # self.network.flag_onehot = True
-            # for i in range(n_branch + 1):
-            #     self.network.flag_output = i + 1
-            #     self.plot_shapes(epoch=self.startepoch, path=my_path, file_suffix = "_" + str(i) + "_onehot", with_cuts = True)
-            # self.network.flag_output = 0
-            # # self.plot_masks(epoch=self.startepoch, path=my_path, n_branch = n_branch, file_suffix = "_onehotmask" + str(i))
-            # self.network.flag_onehot = False
             return
 
-        print("training")
-
+        print("training begin")
         if args.summary == True:
             writer = SummaryWriter(os.path.join("summary", self.foldername))
-        # set init a
-        pow_index = self.startepoch // self.conf.get_int('train.checkpoint_frequency')
-        if self.startepoch % self.conf.get_int('train.checkpoint_frequency') == 0:
-            pow_index = pow_index - 1
-
-        print('summary status: ', args.summary)
         # branch mask is predefined
         branch_mask = torch.zeros(n_branch, n_batchsize).cuda()
         single_branch_mask_gt = torch.zeros(n_batchsize, n_branch).cuda()
-        #for cross entropy loss, id start from 0
         single_branch_mask_id = torch.zeros([n_batchsize], dtype = torch.long).cuda()
         for i in range(n_branch - 1):
             branch_mask[i, i * n_patch_batch : (i + 1) * n_patch_batch] = 1.0
@@ -187,15 +94,7 @@ class ReconstructionRunner:
         single_branch_mask_id[(n_branch - 1) * n_patch_batch:] = (n_branch - 1)
 
         for epoch in range(self.startepoch, self.nepochs + 1):
-            #indices = torch.tensor(np.random.choice(self.data.shape[0], self.points_batch, False))
-            #first feature part then non-feature part
-            # indices = torch.tensor(feature_id[0][np.random.choice(n_feature, n_feature_batch, True)]).cuda()
             indices = torch.empty(0,dtype=torch.int64).cuda()
-            #current feature mask
-            # cur_feature_mask = torch.zeros(n_branch * n_patch_batch + n_feature_batch).cuda()
-            # cur_feature_mask[0: n_feature_batch] = 1.0
-            cur_feature_mask = torch.zeros(n_batchsize).cuda()
-            # print("patch id num: ", patch_id_n)
             for i in range(n_branch - 1):
                 indices_nonfeature = torch.tensor(patch_id[i][np.random.choice(patch_id_n[i], n_patch_batch, True)]).cuda()
                 indices = torch.cat((indices, indices_nonfeature), 0)
@@ -210,70 +109,31 @@ class ReconstructionRunner:
             if epoch % self.conf.get_int('train.checkpoint_frequency') == 0:
                 self.save_checkpoints(epoch)
 
-            # if epoch != self.startepoch and epoch % self.conf.get_int('train.plot_frequency') == 0:
-            # if epoch == self.nepochs:
             if epoch % self.conf.get_int('train.plot_frequency') == 0:
-                # print('saving checkpoint: ', epoch)
                 print('plot validation epoch: ', epoch)
                 for i in range(n_branch + 1):
-                # for i in range(1):
-                # for i in range(n_branch + 3): #for testing
                     self.network.flag_output = i + 1
                     self.plot_shapes(epoch, file_suffix = "_" + str(i), with_cuts = False)
                 self.network.flag_output = 0
-                # adjust coeff
-                # if omega_1 < omega_max:
-                #     omega_1 = omega_1 * 5
-                #     omega_2 = omega_2 * 5
-                #     omega_3 = omega_3 * 5
-
-            # change back to train mode
+            
             self.network.train()
             self.adjust_learning_rate(epoch)
             nonmnfld_pnts = self.sampler.get_points(mnfld_pnts.unsqueeze(0), mnfld_sigma.unsqueeze(0)).squeeze()
-            # nonmnfld_pnts = self.sampler.get_points(non_feature_pnts.unsqueeze(0), non_feature_sigma.unsqueeze(0)).squeeze()
-            # print ("nonmnfld_pnts shape: ", nonmnfld_pnts.shape)
 
             # forward pass
             mnfld_pred_all = self.network(mnfld_pnts)
             nonmnfld_pred_all = self.network(nonmnfld_pnts)
-            # print("mnfld_pnts size: ", mnfld_pnts.shape)
             mnfld_pred = mnfld_pred_all[:,0]
             nonmnfld_pred = nonmnfld_pred_all[:,0]
-            #print shape
-            # compute grad
-            # loss = torch.Tensor([0.0]).float().cuda()
             loss = 0.0
             mnfld_grad = gradient(mnfld_pnts, mnfld_pred)
-            nonmnfld_grad = gradient(nonmnfld_pnts, nonmnfld_pred)
+            
             # manifold loss
-
             mnfld_loss = torch.zeros(1).cuda()
             if not args.ab == 'overall':
-                if flag_eta:
-                    if epoch < 10000:
-                        mnfld_loss = (mnfld_pred.abs()).mean()
-                    else:
-                        #eta version
-                        mnfld_pred_avg = (mnfld_pred.abs()).mean()
-                        mnfld_loss_weight = (mnfld_pred.abs() > mnfld_pred_avg).type(torch.float32)
-                        mnfld_loss = (mnfld_loss_weight * mnfld_pred.abs()).sum() / mnfld_loss_weight.sum()
-                else:
-                    mnfld_loss = (mnfld_pred.abs()).mean()
-
-            #eta version
-            # mask_mfd = mnfld_pred_all[:, n_branch + 1: 2 * n_branch + 1]
-            # sm_loss = nn.Softmax(dim=1)
-            # mask_mfd_sm = sm_loss(mask_mfd)
-
-            # mask_bool = single_branch_mask_gt.type(torch.BoolTensor)
-            # mask_weight = (mask_mfd_sm[mask_bool] < eta).type(torch.float32)
-            # mask_mfd_logsm = F.log_softmax(mask_mfd, dim=1)
-            # # mask_loss = (mask_weight * (torch.sum(single_branch_mask_gt * mask_mfd_logsm, dim=1))).mean()
-            
-            # print ("mnfld loss device: ", mnfld_loss.device)
+                mnfld_loss = (mnfld_pred.abs()).mean()
             loss = loss + weight_mnfld_h *  mnfld_loss
-            # manifold loss for patches
+            
 
             #feature sample
             if args.feature_sample:
@@ -303,9 +163,7 @@ class ReconstructionRunner:
             #last patch
             all_fi[(n_branch - 1) * n_patch_batch:, 0] = mnfld_pred_all[(n_branch - 1) * n_patch_batch:, n_branch]
 
-            # mnfld_loss_patch = 0.0
-            # for i in range(n_branch):
-                # mnfld_loss_patch = mnfld_loss_patch + (mnfld_pred_all[:,i + 1].abs() * branch_mask[i]).mean() * n_batchsize / n_patch_batch
+            # manifold loss for patches
             mnfld_loss_patch = torch.zeros(1).cuda()
             if not args.ab == 'patch':
                 if patch_sup:
@@ -320,67 +178,41 @@ class ReconstructionRunner:
                     correction_loss = (a_correction * torch.abs(mnfld_pred - all_fi[:,0])[mismatch_id]).mean()
                 loss = loss + weight_correction * correction_loss
 
-
             #off surface_loss
             offsurface_loss = torch.zeros(1).cuda()
             if not args.ab == 'off':
                 offsurface_loss = torch.exp(-100.0 * torch.abs(nonmnfld_pred[n_batchsize:])).mean()
                 loss = loss + offsurface_loss
 
+            #manifold consistency loss
             mnfld_consistency_loss = torch.zeros(1).cuda()
             if not (args.ab == 'cons' or args.ab == 'cc'):
                 mnfld_consistency_loss = (mnfld_pred - all_fi[:,0]).abs().mean()
             loss = loss + weight_mnfld_cs *  mnfld_consistency_loss
 
-
-            # eikonal loss for all
-            grad_loss = torch.zeros(1).cuda()
-            #all gradient loss: no good for reconstruction
-            # for i in range(n_branch):
-            #     single_nonmnfld_grad = gradient(nonmnfld_pnts, nonmnfld_pred_all[:,i + 1])
-            #     grad_loss = grad_loss + ((single_nonmnfld_grad.norm(2, dim=-1) - 1) ** 2).mean()
-            # loss = loss + self.grad_lambda * grad_loss
-            # eikonal loss for h
+            #eikonal loss for h
             grad_loss_h = torch.zeros(1).cuda()
             single_nonmnfld_grad = gradient(nonmnfld_pnts, nonmnfld_pred_all[:,0])
             grad_loss_h = ((single_nonmnfld_grad.norm(2, dim=-1) - 1) ** 2).mean()
             loss = loss + self.grad_lambda * grad_loss_h
 
             # normals loss
-            normals_loss = torch.zeros(1).cuda()
             normals_loss_h = torch.zeros(1).cuda()
+            normals_loss = torch.zeros(1).cuda()
             normal_consistency_loss = torch.zeros(1).cuda()
             if not args.siren:
                 if not args.ab == 'normal' and self.with_normals:
                     #all normals
                     normals = cur_data[:, -self.d_in:]
-                    #defined for h
-                    # normals_loss = (((mnfld_grad - normals).abs()).norm(2, dim=1) * (1 - cur_feature_mask)).mean() * (n_batchsize / (n_batchsize - n_feature_batch))
                     if patch_sup:
                         branch_grad = gradient(mnfld_pnts, all_fi[:,0])
-                        # normals_loss = ((torch.cross(branch_grad, normals, dim=1).abs()).norm(2, dim=1)).mean()
                         normals_loss = (((branch_grad - normals).abs()).norm(2, dim=1)).mean()
                     loss = loss + self.normals_lambda * normals_loss
 
-                    # if epoch > 5000:
-                    #     mnfld_grad = gradient(mnfld_pnts, mnfld_pred_all[:, 0])
-                    #     normals_loss_h = (((mnfld_grad - normals).abs()).norm(2, dim=1)).mean()
-                    loss = loss + self.normals_lambda * normals_loss_h
-
-                    #only supervised
+                    #only supervised, not used for loss computation
                     mnfld_grad = gradient(mnfld_pnts, mnfld_pred_all[:, 0])
                     normal_consistency_loss = (mnfld_grad - branch_grad).abs().norm(2, dim=1).mean()
-
                 else:
-                    #ori version
-                    # normals_loss = torch.zeros(1)
-                    # normals_loss_h = torch.zeros(1)
-
-                    #update 0109, eikonal equation for those points
-                    # grad_loss = torch.zeros(1).cuda()
-                    # eikonal loss for patch points
-                    # print('normal ablation')
-                    # grad_loss_h = torch.zeros(1, device = 'cuda')
                     single_nonmnfld_grad = gradient(mnfld_pnts, all_fi[:,0])
                     normals_loss_h = ((single_nonmnfld_grad.norm(2, dim=-1) - 1) ** 2).mean()
                     loss = loss + self.normals_lambda * normals_loss_h
@@ -390,19 +222,8 @@ class ReconstructionRunner:
                 normals_loss_h = (1 - F.cosine_similarity(mnfld_grad, normals, dim=-1)).mean()
                 loss = loss + self.normals_lambda * normals_loss_h
 
-
-            #mask only version:
-            # loss = mask_loss
-
-            # if epoch % 1000 == 0:
-            #     k = 2 * k
-            #     if k > k_max:
-            #         k = k_max
-
             self.optimizer.zero_grad()
-
             loss.backward()
-
             self.optimizer.step()
 
             #tensorboard
@@ -411,11 +232,8 @@ class ReconstructionRunner:
                 writer.add_scalar('Loss/Manifold loss h', mnfld_loss.item(), epoch)
                 writer.add_scalar('Loss/Manifold patch loss', mnfld_loss_patch.item(), epoch)
                 writer.add_scalar('Loss/Manifold cons loss', mnfld_consistency_loss.item(), epoch)
-                writer.add_scalar('Loss/Grad loss all',self.grad_lambda * grad_loss.item(), epoch)
                 writer.add_scalar('Loss/Grad loss h',self.grad_lambda * grad_loss_h.item(), epoch)
-                # writer.add_scalar('Loss/Grad loss G',g_grad_loss.item(), epoch)
                 writer.add_scalar('Loss/Normal loss all', self.normals_lambda * normals_loss.item(), epoch)
-                writer.add_scalar('Loss/Normal loss h', self.normals_lambda * normals_loss_h.item(), epoch)
                 writer.add_scalar('Loss/Normal cs loss', self.normals_lambda * normal_consistency_loss.item(), epoch)
                 writer.add_scalar('Loss/Assignment loss', correction_loss.item(), epoch)
                 writer.add_scalar('Loss/Offsurface loss', offsurface_loss.item(), epoch)
@@ -423,9 +241,9 @@ class ReconstructionRunner:
 
             if epoch % self.conf.get_int('train.status_frequency') == 0:
                 print('Train Epoch: [{}/{} ({:.0f}%)]\tTrain Loss: {:.6f}\t Manifold loss: {:.6f}'
-                    '\tManifold patch loss: {:.6f}\t grad loss all: {:.6f}\t grad loss h: {:.6f}\t normals loss all: {:.6f}\t normals loss h: {:.6f}\t Manifold consistency loss: {:.6f}\tCorrection loss: {:.6f}\t Offsurface loss: {:.6f}'.format(
+                    '\tManifold patch loss: {:.6f}\t grad loss h: {:.6f}\t normals loss all: {:.6f}\t normals loss h: {:.6f}\t Manifold consistency loss: {:.6f}\tCorrection loss: {:.6f}\t Offsurface loss: {:.6f}'.format(
                     epoch, self.nepochs, 100. * epoch / self.nepochs,
-                    loss.item(), mnfld_loss.item(), mnfld_loss_patch.item(), grad_loss.item(), grad_loss_h.item(), normals_loss.item(), normals_loss_h.item(), mnfld_consistency_loss.item(), correction_loss.item(), offsurface_loss.item()))
+                    loss.item(), mnfld_loss.item(), mnfld_loss_patch.item(), grad_loss_h.item(), normals_loss.item(), normals_loss_h.item(), mnfld_consistency_loss.item(), correction_loss.item(), offsurface_loss.item()))
                 if args.feature_sample:
                     print('feature mnfld loss: {} patch loss: {} cons loss: {}'.format(feature_mnfld_loss.item(), feature_loss_patch.item(), feature_loss_cons.item()))
 
