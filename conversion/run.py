@@ -133,7 +133,6 @@ class ReconstructionRunner:
             if not args.ab == 'overall':
                 mnfld_loss = (mnfld_pred.abs()).mean()
             loss = loss + weight_mnfld_h *  mnfld_loss
-            
 
             #feature sample
             if args.feature_sample:
@@ -281,16 +280,11 @@ class ReconstructionRunner:
     def plot_shapes(self, epoch, path=None, with_cuts=False, file_suffix="all"):
         # plot network validation shapes
         with torch.no_grad():
-
             self.network.eval()
-
             if not path:
                 path = self.plots_dir
 
-            # indices = torch.tensor(np.random.choice(self.data.shape[0], self.points_batch, False))
             indices = torch.tensor(np.random.choice(self.data.shape[0], self.points_batch, True)) #modified 0107, with replace
-
-
             pnts = self.data[indices, :3]
 
             #draw nonmnfld pts
@@ -308,8 +302,6 @@ class ReconstructionRunner:
                          **self.conf.get_config('plot'))
 
             if with_cuts:
-                # plot_cuts_axis(points,decoder,latent,path,epoch,near_zero,axis,file_name_sep='/')
-                
                 plot_cuts_axis(points=pnts,
                           decoder=self.network,
                           latent = None,
