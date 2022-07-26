@@ -41,7 +41,6 @@ class NHRepNet(nn.Module):
 
         self.flag_output = flag_output #0: all 1: h, 2: f, 3: g
         self.n_branch = n_branch
-        self.flag_softmax  = False
         self.csg_tree = csg_tree
         self.flag_convex = flag_convex
         self.skip_in = skip_in
@@ -73,6 +72,7 @@ class NHRepNet(nn.Module):
             self.activation = Sine()
         self.final_activation = nn.ReLU()
 
+    # composite f_i to h
     def nested_cvx_output(self, value_matrix, list_operation, cvx_flag=True):
         list_value = []
         for v in list_operation:
@@ -99,119 +99,21 @@ class NHRepNet(nn.Module):
             else:
                 return torch.min(torch.cat(list_output, 1), 1)[0].unsqueeze(1)
 
-    def min_soft(self, mat, m = 0):
-        #mat: mxn
-        #return: mx1
-        if m == 0:
-            res = mat[:,0]
-            for i in range(1, mat.shape[1]):
-                res = res + mat[:,i] - torch.sqrt(res * res + mat[:,i] * mat[:,i])
-        else:
-            res = mat[:,0]
-            for i in range(1, mat.shape[1]):
-                # res = res + mat[:,i] - torch.sqrt(res * res + mat[:,i] * mat[:,i])
-                tmp = torch.sqrt(res * res + mat[:,i] * mat[:,i])
-                res = (res + mat[:,i] - tmp) * torch.pow(tmp, m)
-
-        return res.unsqueeze(1)
-
-    def max_soft(self, mat, m = 0):
-        #mat: mxn
-        #return: mx1
-        if m == 0:
-            res = mat[:,0]
-            for i in range(1, mat.shape[1]):
-                res = res + mat[:,i] + torch.sqrt(res * res + mat[:,i] * mat[:,i])
-        else:
-            res = mat[:,0]
-            for i in range(1, mat.shape[1]):
-                # res = res + mat[:,i] - torch.sqrt(res * res + mat[:,i] * mat[:,i])
-                tmp = torch.sqrt(res * res + mat[:,i] * mat[:,i])
-                res = (res + mat[:,i] + tmp) * torch.pow(tmp, m)
-
-
-        return res.unsqueeze(1)
-
-
-    def nested_cvx_output_soft(self, value_matrix, list_operation, cvx_flag=True):
-        degree = 0
-
-        list_value = []
-        for v in list_operation:
-            if type(v) != list:
-                list_value.append(v)
-        op_mat = torch.zeros(value_matrix.shape[1],len(list_value)).cuda()
-        for i in range(len(list_value)):
-            op_mat[list_value[i]][i] = 1.0
-
-        mat_mul = torch.matmul(value_matrix, op_mat)
-        if len(list_operation) == len(list_value):
-            # leaf node
-            if cvx_flag:
-                # return torch.max(mat_mul, 1)[0].unsqueeze(1)
-                return self.max_soft(mat_mul, degree)
-            else:
-                # return torch.min(mat_mul, 1)[0].unsqueeze(1)
-                return self.min_soft(mat_mul, degree)
-        else:
-            list_output = [mat_mul]
-            for v in list_operation:
-                if type(v) == list:
-                    list_output.append(self.nested_cvx_output_soft(value_matrix, v, not cvx_flag))
-                    # list_output.append(self.nested_cvx_output(value_matrix, v, not cvx_flag))
-
-            if cvx_flag:
-                # return torch.max(torch.cat(list_output, 1), 1)[0].unsqueeze(1)
-                return self.max_soft(torch.cat(list_output, 1), degree)
-            else:
-                # return torch.min(torch.cat(list_output, 1), 1)[0].unsqueeze(1)
-                return self.min_soft(torch.cat(list_output, 1), degree)
-
-
     def min_soft_blend(self, mat, rho):
-        #mat: mxn
-        #return: mx1
-        # rho = 0.25
-        # rho = 0.05
-        # rho = 0.02
-
-
-
-        if True:
-            res = mat[:,0]
-            for i in range(1, mat.shape[1]):
-                # res = res + mat[:,i] - torch.sqrt(res * res + mat[:,i] * mat[:,i])
-                srho = res * res + mat[:,i] * mat[:,i] - rho * rho
-                res = res + mat[:,i] - torch.sqrt(res * res + mat[:,i] * mat[:,i] + 1.0/(8 * rho * rho) * srho * (srho - srho.abs()))
-
-            #modified 0516
-            # srho = (mat*mat).sum(-1) - rho * rho
-            # res = mat.sum(-1) - torch.sqrt(srho + rho * rho + 1.0/(8 * rho * rho) * srho * (srho - srho.abs()))
-
+        res = mat[:,0]
+        for i in range(1, mat.shape[1]):
+            srho = res * res + mat[:,i] * mat[:,i] - rho * rho
+            res = res + mat[:,i] - torch.sqrt(res * res + mat[:,i] * mat[:,i] + 1.0/(8 * rho * rho) * srho * (srho - srho.abs()))
         return res.unsqueeze(1)
 
     def max_soft_blend(self, mat, rho):
-        #mat: mxn
-        #return: mx1
-        # rho = 0.25
-        # rho = 0.05
-        # rho = 0.02
-
-
-        if True:
-            res = mat[:,0]
-            for i in range(1, mat.shape[1]):
-                # res = res + mat[:,i] + torch.sqrt(res * res + mat[:,i] * mat[:,i])
-                srho = res * res + mat[:,i] * mat[:,i] - rho * rho
-                res = res + mat[:,i] + torch.sqrt(res * res + mat[:,i] * mat[:,i] + 1.0/(8 * rho * rho) * srho * (srho - srho.abs()))
-
-            #modified 0516
-            # srho = (mat*mat).sum(-1) - rho * rho
-            # res = mat.sum(-1) + torch.sqrt(srho + rho * rho + 1.0/(8 * rho * rho) * srho * (srho - srho.abs()))
-
-
+        res = mat[:,0]
+        for i in range(1, mat.shape[1]):
+            srho = res * res + mat[:,i] * mat[:,i] - rho * rho
+            res = res + mat[:,i] + torch.sqrt(res * res + mat[:,i] * mat[:,i] + 1.0/(8 * rho * rho) * srho * (srho - srho.abs()))
         return res.unsqueeze(1)
 
+    #r-function blending
     def nested_cvx_output_soft_blend(self, value_matrix, list_operation, cvx_flag=True):
         rho = 0.05
         list_value = []
@@ -226,10 +128,8 @@ class NHRepNet(nn.Module):
         if len(list_operation) == len(list_value):
             # leaf node
             if cvx_flag:
-                # return torch.max(mat_mul, 1)[0].unsqueeze(1)
                 return self.max_soft_blend(mat_mul, rho)
             else:
-                # return torch.min(mat_mul, 1)[0].unsqueeze(1)
                 return self.min_soft_blend(mat_mul, rho)
         else:
             list_output = [mat_mul]
@@ -237,10 +137,8 @@ class NHRepNet(nn.Module):
                 if type(v) == list:
                     list_output.append(self.nested_cvx_output_soft_blend(value_matrix, v, not cvx_flag))
             if cvx_flag:
-                # return torch.max(torch.cat(list_output, 1), 1)[0].unsqueeze(1)
                 return self.max_soft_blend(torch.cat(list_output, 1), rho)
             else:
-                # return torch.min(torch.cat(list_output, 1), 1)[0].unsqueeze(1)
                 return self.min_soft_blend(torch.cat(list_output, 1), rho)
 
 
@@ -255,55 +153,15 @@ class NHRepNet(nn.Module):
             x = lin(x)
             if layer < self.sdf_layers - 2:
                 x = self.activation(x)
-        output_value = x
-
-
-        #ori version
-        #defined here
-        # self.csg_tree = [4,5]
-        # self.flag_convex = False
-        # self.csg_tree = [3,4]
-        # self.flag_convex = False
-
-        #define
-        
-        # self.csg_tree = [1,2,3,4,12]
-        # self.flag_convex = False
-
-        # self.csg_tree = [[11,12,]]
-
-        
+        output_value = x #all f_i
 
         h = self.nested_cvx_output(output_value, self.csg_tree, self.flag_convex)
-        # h = self.nested_cvx_output_soft_blend(output_value, self.csg_tree, self.flag_convex) #our used blend version
-
-
+        # r-function blending
+        # h = self.nested_cvx_output_soft_blend(output_value, self.csg_tree, self.flag_convex)
         
-        #changed version:
-        # output_value[:,0] = input[:,0]
-        # output_value[:,1] = input[:,2]
-        # output_value[:,2] = torch.sqrt(input[:,0] * input[:,0] + input[:,2] * input[:,2]) - 0.6
-        # tmp = torch.min(output_value[:,:2],1)[0].unsqueeze(1)
-        # h = tmp
-        # h = torch.max(torch.cat([output_value[:,2].unsqueeze(1), tmp], 1),1)[0].unsqueeze(1)
-        #changed below
-        # h = self.nested_cvx_output(output_value, [1,3,[7,9]], False)
-
-
-        # h = torch.sign(h)
-
-
-        # if self.flag_output == 0:
-        #     return torch.cat((h.unsqueeze(1), output_value), 1)
-        # elif self.flag_output == 1:
-        #     return h.unsqueeze(1)
-        # else:
-        #     return output_value[:, self.flag_output - 2]
-
-        #ori version
         if self.flag_output == 0:
-            return torch.cat((h, output_value), 1)
+            return torch.cat((h, output_value), 1) # return all
         elif self.flag_output == 1:
-            return h
+            return h #return h
         else:
-            return output_value[:, self.flag_output - 2]
+            return output_value[:, self.flag_output - 2] #return f_i
