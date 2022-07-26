@@ -140,18 +140,13 @@ void get_grouped_edges(Mesh3d& mesh, const std::vector<bool>& he_feature_flag, c
 
 void select_real_sharp_features(Mesh3d& mesh, std::vector<std::pair<int, int>>& ungrouped_features)
 {
-	//std::vector<bool> he_feature_flag;
 	std::vector<bool> he_feature_flag(mesh.get_edges_list()->size(), false);
-
-	//std::vector<std::vector<int>> feature_v2he;
 	std::vector<std::vector<int>> feature_v2he(mesh.get_num_of_vertices()); //id of hes ematating from each vertex
 
 	for (size_t i = 0; i < ungrouped_features.size(); i++)
 	{
 		int id0 = ungrouped_features[i].first;
 		int id1 = ungrouped_features[i].second;
-		//feature_degree_v[id0]++;
-		//feature_degree_v[id1]++;
 
 		HE_edge<double>* begin_edge = mesh.get_vertices_list()->at(id0)->edge;
 		HE_edge<double>* edge = mesh.get_vertices_list()->at(id0)->edge;
@@ -167,7 +162,6 @@ void select_real_sharp_features(Mesh3d& mesh, std::vector<std::pair<int, int>>& 
 			}
 			edge = edge->pair->next;
 		} while (edge != begin_edge);
-		//assert(flag_found == true);
 	}
 
 	std::vector<std::vector<int>> grouped_features;
@@ -186,7 +180,6 @@ void select_real_sharp_features(Mesh3d& mesh, std::vector<std::pair<int, int>>& 
 			tri_verts[i][local_id++] = edge->pair->vert->id;
 			edge = edge->next;
 		} while (edge != begin_edge);
-		//mesh.get_faces_list()->at(fid)->normal;
 		tri_normals.push_back(mesh.get_faces_list()->at(i)->normal);
 	}
 	std::vector<TinyVector<double, 3>> vert_pos;
@@ -210,7 +203,6 @@ void select_real_sharp_features(Mesh3d& mesh, std::vector<std::pair<int, int>>& 
 			}
 			edge = edge->pair->next;
 		} while (edge != mesh.get_vertices_list()->at(id0)->edge);
-		//assert(edge->vert->id == id1);
 		if (edge->vert->id == id1)
 		{
 			he_feature_flag[edge->id] = true;
@@ -235,16 +227,7 @@ void select_real_sharp_features(Mesh3d& mesh, std::vector<std::pair<int, int>>& 
 			size_t tv1 = tri_verts[tfid1][0] + tri_verts[tfid1][1] + tri_verts[tfid1][2] - ev1 - ev2;
 			size_t tv2 = tri_verts[tfid2][0] + tri_verts[tfid2][1] + tri_verts[tfid2][2] - ev1 - ev2;
 			double product = e1->face->normal.Dot(vert_pos[tv2] - vert_pos[tv1]);
-
-
 			double tmp_cos = e1->face->normal.Dot(e2->face->normal);
-			//if (fp2count.find(tmp_pair) == fp2count.end())
-
-
-			/*if (ge2count.find(tmp_pair) == ge2count.end())
-			{
-				fp2count[tmp_pair] = std::array<int, 3>({ 0, 0, 0 });
-			}*/
 
 			int gid = he2gid[i];
 
@@ -253,12 +236,10 @@ void select_real_sharp_features(Mesh3d& mesh, std::vector<std::pair<int, int>>& 
 				//convex
 				if (tmp_cos < th_smooth_cos_value)
 				{
-					//fp2count[tmp_pair][1]++;
 					ge2count[gid][1]++;
 				}
 				else
 				{
-					//fp2count[tmp_pair][0]++;
 					ge2count[gid][0]++;
 				}
 			}
@@ -293,10 +274,7 @@ void select_real_sharp_features(Mesh3d& mesh, std::vector<std::pair<int, int>>& 
 		}
 		ge2convex[i] = maxid;
 		if (maxid != 0)
-		//if (true)
 		{
-			//sharp features
-			//std::cout << i << " grouped feature size: " << grouped_features[i].size() << std::endl;
 			for (auto eid : grouped_features[i])
 			{
 				int v0 = mesh.get_edge(eid)->vert->id;
@@ -370,9 +348,6 @@ int main(int argc, char** argv)
 			std::vector<std::array<double, 3>> vPos = plyIn.getVertexPositions();
 			std::vector<std::vector<size_t>> fInd = plyIn.getFaceIndices<size_t>();
 			mesh.load_mesh(vPos, fInd);
-
-			//test code below
-			//mesh.write_obj("test.obj");
 		}
 		std::cout << "verts: " << mesh.get_vertices_list()->size() << " face:  " << mesh.get_faces_list()->size() << std::endl;
 
@@ -465,8 +440,6 @@ int main(int argc, char** argv)
 		}
 
 		ofs.close();
-
-		//smoothness term
 	}
 	catch (const cxxopts::OptionException& e)
 	{

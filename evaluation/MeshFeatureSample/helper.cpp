@@ -268,12 +268,6 @@ bool get_tree_from_convex_graph(const std::vector<std::set<size_t>> &graph , con
 				}
 			}
 			TreeNode<size_t>* child = new TreeNode<size_t>;
-			//if (layer == 10)
-			//{
-			//	std::cout << "Layers over 10!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
-			//	//exit(EXIT_FAILURE);
-			//	return false;
-			//}
 			bool tmp_flag = get_tree_from_convex_graph(subgraph, flag_fpconvex, !flag_convex_bool, child, layer + 1, invalid_cluster);
 			if (!tmp_flag)
 			{
@@ -524,40 +518,14 @@ void repair_tree_features(Mesh3d& m, const std::vector<int>& face_color, const s
 		}
 	}
 
-	//for debugging: visualize flag_he_feature
-	//auto flag_he_feature_debug = flag_he_feature;
-	//std::vector<std::pair<int, int>> debug_feas;
-	//std::ofstream ofs("debug.fea");
-	//for (size_t i = 0; i < flag_he_feature.size(); i++)
-	//{
-	//	if (flag_he_feature_debug[i])
-	//	{
-	//		flag_he_feature_debug[sub_mesh.get_edge(i)->pair->id] = false;
-	//		//ofs << sub_mesh.get_edge(i)->vert->id << " " << sub_mesh.get_edge(i)->pair->vert->id << std::endl;
-	//		debug_feas.push_back(std::pair<int, int>(sub_mesh.get_edge(i)->vert->id, sub_mesh.get_edge(i)->pair->vert->id));
-	//	}
-	//}
-
-	//ofs << debug_feas.size() << std::endl;
-	//for (auto& pp : debug_feas)
-	//{
-	//	ofs << pp.first << " " << pp.second << std::endl;
-	//}
-
-	//ofs.close();
-
-	//int max_v_degree = 0;
 	std::vector<int> feature_vtype(sub_mesh.get_num_of_vertices(), 0); //0: normal case, 1: corner, 2: turn vertex
 	std::vector<int> feature_vcolor(sub_mesh.get_num_of_vertices(), false);
 
 	for (size_t i = 0; i < feature_v2he.size(); i++)
 	{
-		/*if (max_v_degree < feature_v2he[i].size())
-			max_v_degree = feature_v2he[i].size();*/
 		if (feature_v2he[i].size() == 1)
 		{
 			feature_vtype[i] = 1;
-			//feature_vcolor[i] = true;
 		}
 		else if (feature_v2he[i].size() >= 3)
 		{
@@ -1459,12 +1427,9 @@ bool sample_pts_from_mesh(const std::vector<TinyVector<double, 3>>& tri_verts, c
 		double u = unif_dist(e2);
 		auto iter = std::upper_bound(tri_bound.begin(), tri_bound.end(), u);
 		int fid = (int)std::distance(tri_bound.begin(), iter);
-		//assert(fid != tri_verts.size() + 1);
 		fid = std::max(0, fid - 1);
 		fid = std::min(fid, (int)tri_faces.size() - 1);
-		//sample
-		//int id0 = ungrouped_features[fid].first;
-		//int id1 = ungrouped_features[fid].second;
+
 		double s = unif_dist(e2);
 		double t = unif_dist(e2);
 		if (s + t > 1)
@@ -1473,36 +1438,21 @@ bool sample_pts_from_mesh(const std::vector<TinyVector<double, 3>>& tri_verts, c
 			t = 1 - t;
 		}
 		TinyVector<double, 3> facenormal = tri_normals[fid];
-		/*if (result.count("s"))
-			sample_pts.push_back((1.0 - s - t) * vert_pos[tri_verts[fid][0]] + s * vert_pos[tri_verts[fid][1]] + t * vert_pos[tri_verts[fid][2]] + facenormal * normal_dist(e2));
-		else*/
 		if (flag_pos_noise)
 		{
 			output_pts.push_back((1.0 - s - t) * tri_verts[tri_faces[fid][0]] + s * tri_verts[tri_faces[fid][1]] + t * tri_verts[tri_faces[fid][2]] + facenormal * normal_dist(e2));
 		}
 		else
 			output_pts.push_back((1.0 - s - t) * tri_verts[tri_faces[fid][0]] + s * tri_verts[tri_faces[fid][1]] + t * tri_verts[tri_faces[fid][2]]);
-//			sample_pts.push_back((1.0 - s - t) * vert_pos[tri_verts[fid][0]] + s * vert_pos[tri_verts[fid][1]] + t * vert_pos[tri_verts[fid][2]]);
-		//sample_pt_normals.push_back(facenormal);
-		/*if (result.count("sn"))
-		{
-			sample_pt_normals.push_back(perturb_normal(facenormal, angle_unif_dist(e2), angle_unif_dist(e2)));
-		}
-		else*/
 		if (flag_normal_noise)
 		{
 			output_normals.push_back(perturb_normal(facenormal, angle_unif_dist(e2), angle_unif_dist(e2)));
 		}
 		else
 		{
-			//sample_pt_normals.push_back(facenormal);
 			output_normals.push_back(facenormal);
 
 		}
-		//sample mask to be added
-		//assert(face_color[fid] <= n_color);
-		//sample_mask[n_feature_sample + i] = face_color[fid];
-		//sample_mask.push_back(face_color[fid]);
 		output_masks.push_back(tri_face_masks[fid]);
 	}
 
@@ -1529,8 +1479,6 @@ void sort_grouped_features(Mesh3d* m, std::vector<std::vector<int>>& grouped_fea
 					std::vector<int> hes, vs;
 					hes.push_back(heid);
 					vs.push_back(vid[1 - k]);
-					/*v2hes[vid[k]] = std::vector<int>(heid);
-					v2vs[vid[k]] = std::vector<int>(vid[1 - k]);*/
 					v2hes[vid[k]] = hes;
 					v2vs[vid[k]] = vs;
 				}
@@ -1552,7 +1500,6 @@ void sort_grouped_features(Mesh3d* m, std::vector<std::vector<int>>& grouped_fea
 				cur_vert = it.first;
 			}
 		}
-		//assert(cur_edge != -1);
 		if (cur_vert == -1)
 		{
 			//circular case
@@ -1707,13 +1654,11 @@ int cluster_mesh_faces(Mesh3d* m, const std::vector<bool>& he_feature_flag, std:
 			if (!flag_face_unchangable[otherface])
 			{
 				double tmp_energy = (face_centers[otherface] - fc.ori_face_center).Length();
-				//double tmp_energy = 1.0 - std::abs(edge->face->normal.Dot(edge->pair->face->normal));
 				if (face2cluster[otherface] == -1)
 				{
 					face2cluster[otherface] = face2cluster[fc.fid];
 					m_queue.push(face_cluster(otherface, fc.ori_face_center, face_centers[otherface]));
 					energy[otherface] = tmp_energy;
-					//m_queue.push(face_cluster(otherface, fc.ori_face_center, face_centers[otherface], tmp_energy));
 				}
 				else
 				{
@@ -1721,11 +1666,8 @@ int cluster_mesh_faces(Mesh3d* m, const std::vector<bool>& he_feature_flag, std:
 					if (tmp_energy < energy[otherface])
 					{
 						face2cluster[otherface] = face2cluster[fc.fid];
-						//m_queue.push(face_cluster(otherface, tmp_energy));
 						m_queue.push(face_cluster(otherface, fc.ori_face_center, face_centers[otherface]));
 						energy[otherface] = tmp_energy;
-						//m_queue.push(face_cluster(otherface, fc.ori_face_center, face_centers[otherface], tmp_energy));
-
 					}
 				}
 			}
