@@ -12,7 +12,7 @@ parser.add_argument('--points_batch', type=int, default=16384, help='point batch
 parser.add_argument('--nepoch', type=int, default=15001, help='number of epochs to train for')
 parser.add_argument('--conf', type=str, default='setup.conf')
 parser.add_argument('--expname', type=str, default='single_shape')
-parser.add_argument('--gpu', type=str, default='0', help='GPU to use [default: GPU auto]')
+parser.add_argument('--gpu', type=str, default='0', help='GPU id to use')
 parser.add_argument('--is_continue', default=False, action="store_true", help='continue')
 parser.add_argument('--checkpoint', default='latest', type=str)
 parser.add_argument('--eval', default=False, action="store_true")

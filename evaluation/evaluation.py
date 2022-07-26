@@ -136,8 +136,6 @@ def compute_all():
             f.close()
             continue
 
-        
-
         d['name'].append(line)
 
         mesh = trimesh.load(meshfile)

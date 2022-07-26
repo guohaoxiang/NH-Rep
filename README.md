@@ -15,19 +15,40 @@ We demonstrate the high quality offered by our conversion algorithm on ten thous
 
 The code has been tested on a Ubuntu 18.04 server with CUDA 10.2 installed.
 
-## Quick try
+## Installation
 
-Firstly setup the environment with conda:
 
-        $ conda env create -f environment.yml
-        $ conda activate nhrep
+
+**Via Docker**
+
+This is the most convenient way to try _NH\_Rep_, everything is already settled down in the docker.
+
+        $ docker pull horaceguo/pytorchigr:isg
+        $ docker run --runtime=nvidia --ipc=host --net=host -v /path/to/nh_rep/:/workspace -t -i horaceguo/pytorchigr:isg
+        $ cd /workspace
         
 Then you can convert the points sampled on B-Rep model in _input\_data_ to implicit representation:
 
         $ cd conversion
         $ python run.py --conf setup.conf --pt output_data
 
-Input models are listed in _setup.conf_. And the output pt files are in folder _output\_data_, whose zero surfaces can be extracted using ...
+The training will take about 8 minutes to finish. Currently we only support one-gpu training, you can set gpu id via _--gpu_ flag. The output neural implicit function (broken_bullet_50k_model_h.pt) are stored in folder _output\_data_, whose zero surface can be extracted with our iso-surface generator:
+
+        $ cd ../output_data
+        $ /usr/myapp/ISG -i broken_bullet_50k_model_h.pt -o broken_bullet_50k.ply -d 8
+
+You will find the feature-preserving zero-surface mesh (broken_bullet_50k.ply) in _output\_data_.
+
+**Via Conda**
+
+You can also setup the environment with conda:
+
+        $ conda env create -f environment.yml
+        $ conda activate nhrep
+
+Meanwhile, you need to build iso-surface generator mannually, please refer [here](IsoSurfaceGen/README.md). The built executable file lies in _IsoSurfaceGen/build/App/console_pytorch/ISG_console_pytorch_.
+
+After that, you can conduct implicit conversion and iso-surface extraction as mentioned above.
 
 ## Data downloading (to do)
 We provide the pre-processed ABC dataset used for training and evaluating ComplexNet [here](https://pan.baidu.com/s/1PStVn2h_kkKtYsc-LYF7sQ?pwd=asdf), which can be extracted by [7-Zip](https://www.7-zip.org/). You can find the details of pre-processing pipelines in the [supplemental material](https://haopan.github.io/data/ComplexGen_supplemental.zip) of our paper.
@@ -65,4 +86,54 @@ ComplexGen
 ```
 The description and visualization of each file type can be found in [pickle description](docs/network_prediction_pickle_description.md), [complex description](docs/complex_extraction_complex_description.md) and [json description](docs/geometric_refinement_json_description.md). If you want to directly evaluate the provided output data of ComplexGen, please put the extracted _experiments_ folder under root folder _ComplexGen_, and conduct [Environment setup](https://github.com/guohaoxiang/ComplexGen#environment-setup-with-docker) and [Evaluation](https://github.com/guohaoxiang/ComplexGen#evaluation)
 
+## Training the whole dataset
+
+To train the whole dataset from scratch, run:
+
+        $ cd PATH_TO_NH-REP/conversion
+        $ python run.py --conf setup_all.conf --pt output_data
+
+As there are totally over 10,000 models, the training will take a long long time. We recommend you to use multiple gpus for training. To do this, simply create more *.conf files and distribute 'fileprefix_list' of _setup_all.conf_ into each of them.
+
 ## Evaluation
+
+To conduct evaluation, you need to firstly build a point-sampling tool.
+
+        $ cd PATH_TO_NH-REP/evaluation/MeshFeatureSample
+        $ mkdir build && cd build
+        $ cmake ..
+        $ make
+
+Then you can evaluate the conversion quality (CD, HD, NAE, FCD, FAE) of the broken_bullet model:
+
+        $ cd PATH_TO_NH-REP/evaluation
+        $ python evaluation.py 
+
+To evaluate the whole dataset, run:
+
+        $ python evaluation.py --name_list all_names.txt
+
+Statistics will be stored in _eval_results.csv_.
+
+To evaluate the DE and IoU metric, you need to download ground truth mesh data from [here](https://pan.baidu.com/s/1uob8xASuUbXzJyuo9EsOZA?pwd=asdf), and unzip it under the root folder. You also need to build _IsoSurfaceGen_, then switch to folder _PATH_TO_NH-REP/output_data_, run:
+
+        $ python eval_de_iou.py
+
+DE and IoU will be stored in the *_eval.txt files.
+
+## Citation (to do)
+
+If you use our code for research, please cite our paper:
+```
+```
+
+## License
+
+MIT Licence
+
+## Contact
+
+Please contact us (Haoxiang Guo guohaoxiangxiang@gmail.com, Yang Liu yangliu@microsoft.com) if you have any question about our implementation.
+
+## Acknowledgement
+This implementation takes [IGR](https://github.com/amosgropp/IGR) as references. We thank the authors for their excellent work.
