@@ -31,7 +31,6 @@ class NormalPerPoint(Sampler):
 
         sample_global = (torch.rand(batch_size, sample_size // 8, dim, device=pc_input.device) * (self.global_sigma * 2)) - self.global_sigma
 
-        # print ('bs: {} ss: {} dim: {}'.format(batch_size, sample_size, dim))
         sample = torch.cat([sample_local, sample_global], dim=1)
 
         return sample

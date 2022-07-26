@@ -9,9 +9,7 @@ os.chdir(project_dir)
 import argparse
 # parse args first and set gpu id
 parser = argparse.ArgumentParser()
-parser.add_argument('--points_batch', type=int, default=16384, help='point batch size') #from 16384 to 8192
-# parser.add_argument('--nepoch', type=int, default=100000, help='number of epochs to train for') #default
-# parser.add_argument('--nepoch', type=int, default=15000, help='number of epochs to train for')
+parser.add_argument('--points_batch', type=int, default=16384, help='point batch size') 
 parser.add_argument('--nepoch', type=int, default=15001, help='number of epochs to train for')
 parser.add_argument('--conf', type=str, default='setup.conf')
 parser.add_argument('--expname', type=str, default='single_shape')
@@ -31,24 +29,12 @@ parser.add_argument('--csvm',type=float, default = 1, help = 'c for svm')
 parser.add_argument('--th_closeness',type=float, default = 1e-5, help = 'threshold deciding whether two points are the same')
 parser.add_argument('--onehot', default = False, action="store_true", help = 'set onehot flag as true')
 parser.add_argument('--cpu', default = False, action="store_true", help = 'save for cpu device')
-parser.add_argument('--visloss', default = False, action="store_true", help = 'visualizating loss')
-parser.add_argument('--aml', default = False, action="store_true", help = 'training on aml')
-parser.add_argument('--assign', default = True, action="store_false", help = 'use assignment loss, default true')
-parser.add_argument('--linearassign', default = True, action="store_false", help = 'use linear assignment loss, default true')
 parser.add_argument('--square', default = False, action="store_true", help = 'use quadratic manifold loss')
 parser.add_argument('--offsurface', default = True, action="store_false", help = 'use assignment loss')
-parser.add_argument('--getmask', default = False, action="store_true", help = 'get mask from point cloud')
 parser.add_argument('--ab', default='none', type=str, help = 'ablation')
-
 parser.add_argument('--siren', default = False, action="store_true", help = 'siren normal loss')
-
-parser.add_argument('--pt', default='ptfile', type=str) #not used anymore
-
-# parser.add_argument('--branch', default = -1, type = int, help='number of branches')
-#training stage
-parser.add_argument('--stage', type=int, default=0, help='training stage: 0 for normal training, 1 for mask only training, 2 for sdf only training')
-
-parser.add_argument('--feature_sample', action="store_true", help = 'use feature samples')
+parser.add_argument('--pt', default='ptfile path', type=str) 
+parser.add_argument('--feature_sample', action="store_true", help = 'use feature curve samples')
 parser.add_argument('--lossgrad2', action="store_true", help = 'use feature samples')
 parser.add_argument('--num_feature_sample', type=int, default=2048, help ='number of bs feature samples')
 parser.add_argument('--all_feature_sample', type=int, default=10000, help ='number of all feature samples')
@@ -73,7 +59,6 @@ from utils.plots import plot_surface, plot_cuts, plot_masks, plot_masks_maxsdf, 
 from torch.utils.tensorboard import SummaryWriter
 from torchsummary import summary
 
-from focalloss import *
 from plywrite import save_vert_color_ply, save_vertnormal_color_ply
 import matplotlib.cm as cm
 from numpy import linalg as LA
@@ -153,8 +138,8 @@ class ReconstructionRunner:
         offset_sigma = 0.01
         weight_mnfld_h = 1
         weight_mnfld_cs = 1
-        weight_assignment = 1
-        a_assignment = 100
+        weight_correction = 1
+        a_correction = 100
         flag_eta = False
         eta = 0.0
 
@@ -189,11 +174,6 @@ class ReconstructionRunner:
             # # self.plot_masks(epoch=self.startepoch, path=my_path, n_branch = n_branch, file_suffix = "_onehotmask" + str(i))
             # self.network.flag_onehot = False
             return
-
-        if args.getmask:
-            self.get_mask(os.path.join('/mnt/sdf1/haog/code/IGR', self.foldername + "_getmask.txt"))
-            return
-
 
         print("training")
 
@@ -397,16 +377,13 @@ class ReconstructionRunner:
                     # mnfld_loss_patch = (all_fi[:,0]*all_fi[:,0]).mean()
             loss = loss + mnfld_loss_patch
 
-            #assignment loss
-            assignment_loss = torch.zeros(1).cuda()
-            if  not (args.ab == 'cor' or args.ab == 'cc') and args.assign and epoch > 10000 and not args.baseline:
-                wrong_assignment_flag = torch.abs(mnfld_pred - all_fi[:,0]) > args.th_closeness
-                if args.linearassign:
-                    assignment_loss = (a_assignment * torch.abs(mnfld_pred - all_fi[:,0])[wrong_assignment_flag]).mean()
-                else:
-                    assignment_loss = torch.exp(a_assignment * torch.abs(mnfld_pred - all_fi[:,0])[wrong_assignment_flag]).mean() - 1.0
-                    
-                loss = loss + weight_assignment * assignment_loss
+            #correction loss
+            correction_loss = torch.zeros(1).cuda()
+            if  not (args.ab == 'cor' or args.ab == 'cc') and epoch > 10000 and not args.baseline:
+                mismatch_id = torch.abs(mnfld_pred - all_fi[:,0]) > args.th_closeness
+                if mismatch_id.sum() != 0:
+                    correction_loss = (a_correction * torch.abs(mnfld_pred - all_fi[:,0])[mismatch_id]).mean()
+                loss = loss + weight_correction * correction_loss
 
 
             #off surface_loss
@@ -512,7 +489,7 @@ class ReconstructionRunner:
                 writer.add_scalar('Loss/Normal cs loss', self.normals_lambda * normal_consistency_loss.item(), epoch)
                 writer.add_scalar('Loss/Offset loss h', offset_omega * offset_loss.item(), epoch)
                 writer.add_scalar('Loss/Offset loss patch', offset_omega * offset_patch_loss.item(), epoch)
-                writer.add_scalar('Loss/Assignment loss', assignment_loss.item(), epoch)
+                writer.add_scalar('Loss/Assignment loss', correction_loss.item(), epoch)
                 writer.add_scalar('Loss/Offsurface loss', offsurface_loss.item(), epoch)
 
 
@@ -545,7 +522,7 @@ class ReconstructionRunner:
                 print ("offset loss: ", offset_loss.item())
                 print ("offset patch loss: ", offset_patch_loss.item())
                 print ("mnfld consistency loss: ", mnfld_consistency_loss.item())
-                print ('assignment loss: ', assignment_loss.item())
+                print ('correction loss: ', correction_loss.item())
                 print ('offsurface_loss loss: ', offsurface_loss.item())
                 
                 if args.feature_sample:
@@ -555,45 +532,18 @@ class ReconstructionRunner:
 
     def tracing(self):
         #network definition
-        # conf_filename = args.conf
-        # conf = ConfigFactory.parse_file('./reconstruction/' + conf_filename)
-        # feature_mask = utils.load_feature_mask()
-        # feature_mask_file = conf.get_string('train.feature_mask_path')
-        # feature_mask = torch.tensor(np.loadtxt(conf.get_string('train.feature_mask_path'))).float()
-
-        input_file = self.conf.get_string('train.input_path')
-        # csg_tree = ConfigFactory.parse_file(input_file[:-4]+'_csg.conf').get_list('csg.list')
         device = torch.device('cuda')
         if args.cpu:
             device = torch.device('cpu')
-
-        # if args.baseline:
-        #     feature_mask = torch.ones(feature_mask.shape).float()
-
-        nb = int(torch.max(self.feature_mask).item())
-
         network = utils.get_class(self.conf.get_string('train.network_class'))(d_in=3, flag_output = 1,
-                                                                                        n_branch = nb,
+                                                                                        n_branch = int(torch.max(self.feature_mask).item()),
                                                                                         csg_tree = self.csg_tree,
                                                                                         flag_convex = self.csg_flag_convex,
                                                                                         **self.conf.get_config(
                                                                                         'network.inputs'))
         network.to(device)
-
-        # old_checkpnts_dir = os.path.join(self.expdir, self.timestamp, 'checkpoints')
-
-        # ori version
-
-        # foldername = conf.get_string('train.foldername').strip()
-
-        # ckpt_prefix = '/mnt/sdf1/haog/code/IGR/exps/single_shape/'
-        ckpt_prefix = '/mnt/data/haog/code/exps/single_shape/'
-        # ckpt_prefix = 'exps/'
+        ckpt_prefix = 'exps/single_shape/'
         save_prefix = '{}/'.format(args.pt)
-        if args.aml:
-            ckpt_prefix = '/blob/code/exps/single_shape/'
-            save_prefix = '/blob/code/IGR/{}/'.format(args.pt)
-
         if not os.path.exists(save_prefix):
             os.mkdir(save_prefix)
 
@@ -603,236 +553,11 @@ class ReconstructionRunner:
         else:
             saved_model_state = torch.load(ckpt_prefix + self.foldername + '/checkpoints/ModelParameters/latest.pth')
             network.load_state_dict(saved_model_state["model_state_dict"])
-        print('loading finish')
         #trace
         example = torch.rand(224,3).to(device)
         traced_script_module = torch.jit.trace(network, example)
         traced_script_module.save(save_prefix + self.foldername + "_model_h.pt")
-
-    def visualize_loss(self):
-        self.network.eval()
-        #all losses list below
-        h_loss_pt = torch.zeros(self.data.shape[0]).cuda()
-        patch_loss_pt = torch.zeros(self.data.shape[0]).cuda()
-        cs_loss_pt = torch.zeros(self.data.shape[0]).cuda()
-        h_normal_loss_pt = torch.zeros(self.data.shape[0]).cuda()
-        patch_normal_loss_pt = torch.zeros(self.data.shape[0]).cuda()
-        normal_cs_loss_pt = torch.zeros(self.data.shape[0]).cuda()
-        approx_h_loss_pt = torch.zeros(self.data.shape[0]).cuda()
-        approx_patch_loss_pt = torch.zeros(self.data.shape[0]).cuda()
-        approx_cs_loss_pt = torch.zeros(self.data.shape[0]).cuda()
-        grad_loss_pt = torch.zeros(self.data.shape[0]).cuda()
-        assignment_loss_pt = torch.zeros(self.data.shape[0]).cuda()
-
-        # ln2loss = {'h_loss': h_loss_pt, \
-        #     'patch_loss': patch_loss_pt,\
-        #     'cs_loss': cs_loss_pt,\
-        #     'h_normal_loss': h_normal_loss_pt,\
-        #     'patch_normal_loss': patch_normal_loss_pt,\
-        #     'normal_cs_loss': normal_cs_loss_pt,\
-        #     'approx_h_loss': approx_h_loss_pt,\
-        #     'approx_patch_loss': approx_patch_loss_pt,\
-        #     'approx_cs_loss': approx_cs_loss_pt,\
-        #     'grad_loss': grad_loss_pt,\
-        #     'penalty_loss': assignment_loss_pt,
-        #     }
-        ln2loss = {'h_loss': h_loss_pt, \
-            'patch_loss': patch_loss_pt,\
-            'cs_loss': cs_loss_pt,\
-            'h_normal_loss': h_normal_loss_pt,\
-            'patch_normal_loss': patch_normal_loss_pt,\
-            'normal_cs_loss': normal_cs_loss_pt,\
-            'grad_loss': grad_loss_pt,\
-            'penalty_loss': assignment_loss_pt,
-            }
-
-        allid = torch.arange(self.data.shape[0], dtype=torch.int64)
-        n_branch = int(torch.max(self.feature_mask).item())
-        n_batchsize = self.points_batch
-
-        wrong_assign_count = torch.zeros(1).cuda()
-
-        for i,indices in enumerate(torch.split(allid, n_batchsize)):
-        # for epoch in range(self.startepoch, self.nepochs + 1):
-            #indices = torch.tensor(np.random.choice(self.data.shape[0], self.points_batch, False))
-            #first feature part then non-feature part
-            # indices = torch.tensor(feature_id[0][np.random.choice(n_feature, n_feature_batch, True)]).cuda()
-            # indices = torch.empty(0,dtype=torch.int64).cuda()
-            #current feature mask
-            # cur_feature_mask = torch.zeros(n_branch * n_patch_batch + n_feature_batch).cuda()
-            # cur_feature_mask[0: n_feature_batch] = 1.0
-            # cur_feature_mask = torch.zeros(n_batchsize).cuda()
-            # for i in range(n_branch - 1):
-            #     indices_nonfeature = torch.tensor(patch_id[i][np.random.choice(patch_id_n[i], n_patch_batch, True)]).cuda()
-            #     indices = torch.cat((indices, indices_nonfeature), 0)
-            # #last patch
-            # indices_nonfeature = torch.tensor(patch_id[n_branch - 1][np.random.choice(patch_id_n[n_branch - 1], n_patch_last, True)]).cuda()
-            # indices = torch.cat((indices, indices_nonfeature), 0)            
-
-            cur_data = self.data[indices]
-            cur_mask = self.feature_mask[indices]
-            mnfld_pnts = cur_data[:, :self.d_in] #n_indices x 3
-            mnfld_sigma = self.local_sigma[indices] #noise points
-
-            # change back to train mode
-            # self.network.train()
-            # self.adjust_learning_rate(epoch)
-            # nonmnfld_pnts = self.sampler.get_points(mnfld_pnts.unsqueeze(0), mnfld_sigma.unsqueeze(0)).squeeze()
-            # nonmnfld_pnts = self.sampler.get_points(non_feature_pnts.unsqueeze(0), non_feature_sigma.unsqueeze(0)).squeeze()
-
-            # forward pass
-            mnfld_pred_all = self.network(mnfld_pnts)
-            # nonmnfld_pred_all = self.network(nonmnfld_pnts)
-            # print("mnfld_pnts size: ", mnfld_pnts.shape)
-            mnfld_pred = mnfld_pred_all[:,0]
-            # nonmnfld_pred = nonmnfld_pred_all[:,0]
-            #print shape
-            # compute grad
-            # loss = torch.Tensor([0.0]).float().cuda()
-            mnfld_grad = gradient(mnfld_pnts, mnfld_pred)
-            # nonmnfld_grad = gradient(nonmnfld_pnts, nonmnfld_pred)
-            # manifold loss
-            mnfld_pred_devide_grad = mnfld_pred / mnfld_grad.norm(2, dim=1)
-            approx_h_loss_pt[i * n_batchsize: i * n_batchsize + indices.shape[0]] = (mnfld_pred_devide_grad.abs())
-            h_loss_pt[i * n_batchsize: i * n_batchsize + indices.shape[0]] = mnfld_pred.abs()
-
-            all_fi = torch.zeros(indices.shape[0]).cuda()
-            for j in range(n_branch):
-                tmp_mask = (cur_mask == j + 1)
-                all_fi[tmp_mask] = mnfld_pred_all[tmp_mask, j + 1]
-                # all_fi[i * n_patch_batch : (i + 1) * n_patch_batch, 0] = mnfld_pred_all[i * n_patch_batch : (i + 1) * n_patch_batch, i + 1]
-
-            print('all fi shape: ', all_fi.shape)
-            # print('all fi shape: ', all_fi.shape)
-            print ('{} {}'.format(i * n_batchsize, i * n_batchsize + indices.shape[0]))
-            print('output shape', patch_loss_pt[i * n_batchsize: i * n_batchsize + indices.shape[0]].shape)
-            print('patch loss shape: ', patch_loss_pt.shape)
-            patch_loss_pt[i * n_batchsize: i * n_batchsize + indices.shape[0]] = all_fi.abs()
-            assert(all_fi.shape == mnfld_pred.shape)
-            cs_loss_pt[i * n_batchsize: i * n_batchsize + indices.shape[0]] = (all_fi - mnfld_pred).abs()
-            normals = cur_data[:, -self.d_in:]
-            h_normal_loss_pt[i * n_batchsize: i * n_batchsize + indices.shape[0]] = (mnfld_grad - normals).norm(2, dim=1)
-            branch_grad = gradient(mnfld_pnts, all_fi)
-            patch_normal_loss_pt[i * n_batchsize: i * n_batchsize + indices.shape[0]] = (branch_grad - normals).norm(2, dim=1)
-            normal_cs_loss_pt[i * n_batchsize: i * n_batchsize + indices.shape[0]] = (mnfld_grad - branch_grad).norm(2, dim=1)
-            grad_loss_pt[i * n_batchsize: i * n_batchsize + indices.shape[0]] = (mnfld_grad.norm(2, dim=-1)-1)**2
-            all_fi_devide_grad = all_fi / branch_grad.norm(2, dim=1)
-            approx_patch_loss_pt[i * n_batchsize: i * n_batchsize + indices.shape[0]] = (all_fi_devide_grad).abs()
-            approx_cs_loss_pt[i * n_batchsize: i * n_batchsize + indices.shape[0]] = (mnfld_pred_devide_grad - all_fi_devide_grad).abs()
-
-            #penalty loss
-            # wrong_assignment_flag = (mnfld_pred != all_fi)
-            wrong_assignment_flag = torch.abs(mnfld_pred - all_fi) > args.th_closeness
-
-            mnfld_pred_abs = torch.abs(mnfld_pred)[wrong_assignment_flag]
-            all_fi_abs = torch.abs(all_fi)[wrong_assignment_flag]
-
-            # assignment_loss_pt[i * n_batchsize: i * n_batchsize + indices.shape[0]][wrong_assignment_flag] = 1.0/(mnfld_pred_abs - all_fi_abs + torch.sqrt((mnfld_pred_abs - all_fi_abs) * (mnfld_pred_abs - all_fi_abs) + 1e-6))
-            assignment_loss_pt[i * n_batchsize: i * n_batchsize + indices.shape[0]][wrong_assignment_flag] = torch.exp(100 * torch.abs(mnfld_pred - all_fi)[wrong_assignment_flag])
-
-            wrong_assign_count = wrong_assign_count + torch.sum(wrong_assignment_flag)
-            
-            
-        # approx h loss
-        print("self name: ", self.foldername)
-        print("wrong assignment count: ", wrong_assign_count)
-        for k in ln2loss:
-            print("{} loss avg: {:6f} max: {:6f}".format(k,torch.mean(ln2loss[k]).item(), torch.max(ln2loss[k]).item()))
-            
-            save_prefix = '/mnt/sdf1/haog/code/IGR/exps/'
-            if args.aml:
-                save_prefix = '/blob/code/exps/'
-            visualize_ptnormal_loss(save_prefix + 'visloss/{}_{}.ply'.format(self.foldername, k), self.data.detach().cpu().numpy(), ln2loss[k].detach().cpu().numpy())
-
-    def get_mask(self, filename):
-        self.network.eval()
-        #all losses list below
-        # ln2loss = {'h_loss': h_loss_pt, \
-        #     'patch_loss': patch_loss_pt,\
-        #     'cs_loss': cs_loss_pt,\
-        #     'h_normal_loss': h_normal_loss_pt,\
-        #     'patch_normal_loss': patch_normal_loss_pt,\
-        #     'normal_cs_loss': normal_cs_loss_pt,\
-        #     'approx_h_loss': approx_h_loss_pt,\
-        #     'approx_patch_loss': approx_patch_loss_pt,\
-        #     'approx_cs_loss': approx_cs_loss_pt,\
-        #     'grad_loss': grad_loss_pt,\
-        #     'penalty_loss': assignment_loss_pt,
-        #     }
-
-        n_branch = int(torch.max(self.feature_mask).item())
-        n_batchsize = self.points_batch
-
-        #batch version
-        # in_folder = '/mnt/sdf1/haog/code/IGR/correspondence_data/1010'
-        in_file = '/mnt/sdf1/haog/code/IGR/correspondence_data/1617/nomask_list_normallambda1_mnfldcs_center_assign_10000_begin_linassign_00001617_50k_color_34_nooct_fc.xyz'
-
-        # fs = os.listdir(in_folder)
-        # for f in fs:
-        if True:
-            # f = in_file
-            # if f.endswith('.xyz'):
-            if True:
-                # in_file = os.path.join(in_folder, f)
-                # input folder is set here
-                # in_file = '/mnt/sdf1/haog/code/IGR/bb_fcdata/broken_bullet_input_50k.xyz'
-                # in_file = '/mnt/sdf1/haog/code/IGR/bb_fcdata/bb_nocolor_broken_bullet_input_50k_234_nooct_fc.xyz'
-                prefix = in_file.split('.')[0]
-
-                data = torch.tensor(np.loadtxt(in_file)).float().cuda()
-                print('shape: ', data.shape)
-                allid = torch.arange(data.shape[0], dtype=torch.int64)
-                output_mask = torch.zeros(data.shape[0], dtype=torch.int64).cuda()
-                for i,indices in enumerate(torch.split(allid, n_batchsize)):
-                # for epoch in range(self.startepoch, self.nepochs + 1):
-                    #indices = torch.tensor(np.random.choice(self.data.shape[0], self.points_batch, False))
-                    #first feature part then non-feature part
-                    # indices = torch.tensor(feature_id[0][np.random.choice(n_feature, n_feature_batch, True)]).cuda()
-                    # indices = torch.empty(0,dtype=torch.int64).cuda()
-                    #current feature mask
-                    # cur_feature_mask = torch.zeros(n_branch * n_patch_batch + n_feature_batch).cuda()
-                    # cur_feature_mask[0: n_feature_batch] = 1.0
-                    # cur_feature_mask = torch.zeros(n_batchsize).cuda()
-                    # for i in range(n_branch - 1):
-                    #     indices_nonfeature = torch.tensor(patch_id[i][np.random.choice(patch_id_n[i], n_patch_batch, True)]).cuda()
-                    #     indices = torch.cat((indices, indices_nonfeature), 0)
-                    # #last patch
-                    # indices_nonfeature = torch.tensor(patch_id[n_branch - 1][np.random.choice(patch_id_n[n_branch - 1], n_patch_last, True)]).cuda()
-                    # indices = torch.cat((indices, indices_nonfeature), 0)            
-
-                    cur_data = data[indices]
-                    mnfld_pnts = cur_data[:, :self.d_in] #n_indices x 3
-                    # mnfld_sigma = self.local_sigma[indices] #noise points
-
-                    # change back to train mode
-                    # self.network.train()
-                    # self.adjust_learning_rate(epoch)
-                    # nonmnfld_pnts = self.sampler.get_points(mnfld_pnts.unsqueeze(0), mnfld_sigma.unsqueeze(0)).squeeze()
-                    # nonmnfld_pnts = self.sampler.get_points(non_feature_pnts.unsqueeze(0), non_feature_sigma.unsqueeze(0)).squeeze()
-
-                    # forward pass
-                    # print ('input shape', mnfld_pnts.shape)
-                    mnfld_pred_all = self.network(mnfld_pnts)
-                    # nonmnfld_pred_all = self.network(nonmnfld_pnts)
-                    # print("mnfld_pnts size: ", mnfld_pnts.shape)
-                    mnfld_pred = mnfld_pred_all[:,0].unsqueeze(1)
-                    # nonmnfld_pred = nonmnfld_pred_all[:,0]
-                    #print shape
-                    # compute grad
-                    # loss = torch.Tensor([0.0]).float().cuda()
-                    pred_diff = (mnfld_pred_all[:,1:] - mnfld_pred).abs()
-                    output_mask[indices] = torch.argmin(pred_diff, dim=1) + 1
-                # np.savetxt(filename, output_mask.detach().cpu().numpy().astype(int))
-                np.savetxt('{}.txt'.format(prefix), output_mask.detach().cpu().numpy().astype(int))
-
-                mask = output_mask.detach().cpu().numpy().astype(int)
-                plydata = prefix[:-3] + '.ply'
-                mesh = trimesh.load(plydata)
-                assert(mesh.faces.shape[0] == mask.shape[0])
-                save_mesh_off(prefix + '.off', mesh.vertices, mesh.faces, mask)
-                #save colored off
-
-        return
+        print('converting to pt finished')
 
     def plot_shapes(self, epoch, path=None, with_cuts=False, file_suffix="all"):
         # plot network validation shapes
@@ -875,16 +600,12 @@ class ReconstructionRunner:
                           axis = 2)
 
     def __init__(self, **kwargs):
-
-        self.home_dir = os.path.abspath(os.pardir)
-
+        self.home_dir = os.path.abspath(os.getcwd())
         flag_list = False
         if 'flag_list' in kwargs:
             flag_list = True
-        print ('flag list: ', flag_list)
 
         # config setting
-
         if type(kwargs['conf']) == str:
             self.conf_filename = './conversion/' + kwargs['conf']
             self.conf = ConfigFactory.parse_file(self.conf_filename)
@@ -893,44 +614,16 @@ class ReconstructionRunner:
 
         self.expname = kwargs['expname']
 
-        # GPU settings
-
+        # GPU settings, currently we only support single-gpu training
         self.GPU_INDEX = kwargs['gpu_index']
-
-        # if not self.GPU_INDEX == 'ignore':
-        #     os.environ["CUDA_VISIBLE_DEVICES"] = '{0}'.format(self.GPU_INDEX)
-        # if not self.GPU_INDEX == 'ignore':
-            
-
         self.num_of_gpus = torch.cuda.device_count()
-
         self.eval = kwargs['eval']
         self.evaldist = kwargs['evaldist']
 
-        # settings for loading an existing experiment
-        #20200927: if checkpoint exists in the folder, then continue, otherwise not
-
-        # if (kwargs['is_continue'] or self.eval) and kwargs['timestamp'] == 'latest':
-        #     if os.path.exists(os.path.join(self.home_dir, 'exps', self.expname)):
-        #         timestamps = os.listdir(os.path.join(self.home_dir, 'exps', self.expname))
-        #         if (len(timestamps)) == 0:
-        #             is_continue = False
-        #             timestamp = None
-        #         else:
-        #             timestamp = sorted(timestamps)[-1]
-        #             is_continue = True
-        #     else:
-        #         is_continue = False
-        #         timestamp = None
-        # else:
-        #     timestamp = kwargs['timestamp']
-        #     is_continue = kwargs['is_continue'] or self.eval
-
-
-
         self.exps_folder_name = 'exps'
-
         utils.mkdir_ifnotexists(utils.concat_home_dir(os.path.join(self.home_dir, self.exps_folder_name)))
+        self.expdir = utils.concat_home_dir(os.path.join(self.home_dir, self.exps_folder_name, self.expname))
+        utils.mkdir_ifnotexists(self.expdir)
 
         if not flag_list:
             if args.test:
@@ -946,7 +639,6 @@ class ReconstructionRunner:
                 self.feature_mask_file = self.conf.get_string('train.feature_mask_path')
                 self.feature_mask = utils.load_feature_mask(self.feature_mask_file)
         else:
-            #not considering testing part
             self.input_file = os.path.join(self.conf.get_string('train.input_path'), kwargs['file_prefix']+'.xyz')
             if not os.path.exists(self.input_file):
                 self.flag_data_load = False
@@ -995,17 +687,7 @@ class ReconstructionRunner:
         sigmas = np.concatenate(sigma_set)
         self.local_sigma = torch.from_numpy(sigmas).float().cuda()
 
-
-        self.expdir = utils.concat_home_dir(os.path.join(self.home_dir, self.exps_folder_name, self.expname))
-        utils.mkdir_ifnotexists(self.expdir)
-
-        # if is_continue:
-        #     self.timestamp = timestamp
-        # else:
-        #     self.timestamp = '{:%Y_%m_%d_%H_%M_%S}'.format(datetime.now())
-        self.timestamp = self.foldername
-
-        self.cur_exp_dir = os.path.join(self.expdir, self.timestamp)
+        self.cur_exp_dir = os.path.join(self.expdir, self.foldername)
         utils.mkdir_ifnotexists(self.cur_exp_dir)
 
         self.plots_dir = os.path.join(self.cur_exp_dir, 'plots')
@@ -1049,12 +731,6 @@ class ReconstructionRunner:
 
 
         print (self.network)
-        # summary(self.network, (3,1))
-
-        # print (list(self.network.sdf_0.parameters()))
-        # for name, param in self.network.named_parameters():
-        #     print (name, param.data[0].size())
-        #     print ('type: ', type(param))
 
         if torch.cuda.is_available():
             self.network.cuda()
@@ -1063,116 +739,27 @@ class ReconstructionRunner:
         self.weight_decay = self.conf.get_float('train.weight_decay')
 
         self.startepoch = 0
-
-        if args.stage == 2:
-            # self.optimizer = torch.optim.Adam(
-            #     [
-            #         {
-            #             "params": list(self.network.sdf_0.parameters()) + list(self.network.sdf_1.parameters()) + list(self.network.sdf_2.parameters()) + list(self.network.sdf_3.parameters()),
-            #             "lr": self.lr_schedules[0].get_learning_rate(0),
-            #             "weight_decay": self.weight_decay
-            #         },
-            #     ])
-
-            #with mask
-            params_sdf = []
-            params_mask = []
-            params_svm = []
-            # for name, param in self.network.named_parameters():
-            #     if name.startswith('sdf'):
-            #         params_sdf = params_sdf + list(param)
-            #     else:
-            #         params_mask = params_mask + list(param)
-
-            #might need to be modified according to svm
-            for k, v in self.network.state_dict().items():
-                if k.startswith('sdf'):
-                    params_sdf = params_sdf + list(v)
-                elif k.startswith('mask'):
-                    params_mask = params_mask + list(v)
-                elif k.startswith('svm'):
-                    params_svm = params_svm + list(v)
-
-            #only optimize sdf
-            # self.optimizer = torch.optim.Adam(
-            #     [
-            #         {
-            #             # "params": list(self.network.sdf_0.parameters()) + list(self.network.sdf_1.parameters()) + list(self.network.sdf_2.parameters()) + list(self.network.sdf_3.parameters()),
-            #             "params": params_sdf,
-            #             "lr": self.lr_schedules[0].get_learning_rate(0),
-            #             "weight_decay": self.weight_decay
-            #         },
-            #     ])
-
-
-            #with mask
-
-            self.optimizer = torch.optim.Adam(
-                [
-                    {
-                        # "params": list(self.network.sdf_0.parameters()) + list(self.network.sdf_1.parameters()) + list(self.network.sdf_2.parameters()) + list(self.network.sdf_3.parameters()),
-                        "params": params_sdf,
-                        "lr": self.lr_schedules[0].get_learning_rate(0),
-                        "weight_decay": self.weight_decay
-                    },
-                    {
-                        # "params": list(self.network.mask_0.parameters()) + list(self.network.mask_1.parameters()) + list(self.network.mask_2.parameters()) + list(self.network.mask_3.parameters()) + list(self.network.mask_4.parameters()) + list(self.network.mask_5.parameters()) + list(self.network.mask_6.parameters()) + list(self.network.mask_7.parameters()),
-                        "params": params_mask,
-                        "lr": self.lr_schedules[1].get_learning_rate(0),
-                        "weight_decay": self.weight_decay
-                    },
-                    {
-                        # "params": list(self.network.mask_0.parameters()) + list(self.network.mask_1.parameters()) + list(self.network.mask_2.parameters()) + list(self.network.mask_3.parameters()) + list(self.network.mask_4.parameters()) + list(self.network.mask_5.parameters()) + list(self.network.mask_6.parameters()) + list(self.network.mask_7.parameters()),
-                        "params": params_svm,
-                        "lr": self.lr_schedules[1].get_learning_rate(0),
-                        "weight_decay": self.weight_decay
-                    }
-                ])
-
-        else:
-            self.optimizer = torch.optim.Adam(
-                [
-                    {
-                        "params": self.network.parameters(),
-                        "lr": self.lr_schedules[0].get_learning_rate(0),
-                        "weight_decay": self.weight_decay
-                    },
-                ])
-
-        #for MLP_SDF
-        # self.optimizer = torch.optim.Adam(
-        #     [
-        #         {
-        #             "params": list(self.network.sdf_0.parameters()) + list(self.network.sdf_1.parameters()) + list(self.network.sdf_2.parameters()) + list(self.network.sdf_3.parameters()),
-        #             "lr": self.lr_schedules[0].get_learning_rate(0),
-        #             "weight_decay": 0.0001
-        #         },
-        #         {
-        #             "params": list(self.network.mask_0.parameters()) + list(self.network.mask_1.parameters()) + list(self.network.mask_2.parameters()) + list(self.network.mask_3.parameters()),
-        #             "lr": self.lr_schedules[0].get_learning_rate(0),
-        #             "weight_decay": 0
-        #         }
-        #     ])
+        self.optimizer = torch.optim.Adam(
+            [
+                {
+                    "params": self.network.parameters(),
+                    "lr": self.lr_schedules[0].get_learning_rate(0),
+                    "weight_decay": self.weight_decay
+                },
+            ])
 
         # if continue load checkpoints
-
         if is_continue:
-            old_checkpnts_dir = os.path.join(self.expdir, self.timestamp, 'checkpoints')
+            old_checkpnts_dir = os.path.join(self.expdir, self.foldername, 'checkpoints')
             print('loading checkpoint from: ', old_checkpnts_dir)
-            if args.stage == 2:
-                saved_model_state = torch.load(
-                    os.path.join(old_checkpnts_dir, 'ModelParameters', str(kwargs['checkpoint']) + ".pth"))
-                self.network.load_state_dict(saved_model_state["model_state_dict"])
-                self.startepoch = saved_model_state['epoch']
-            else:
-                saved_model_state = torch.load(
-                    os.path.join(old_checkpnts_dir, 'ModelParameters', str(kwargs['checkpoint']) + ".pth"))
-                self.network.load_state_dict(saved_model_state["model_state_dict"])
+            saved_model_state = torch.load(
+                os.path.join(old_checkpnts_dir, 'ModelParameters', str(kwargs['checkpoint']) + ".pth"))
+            self.network.load_state_dict(saved_model_state["model_state_dict"])
 
-                data = torch.load(
-                    os.path.join(old_checkpnts_dir, 'OptimizerParameters', str(kwargs['checkpoint']) + ".pth"))
-                self.optimizer.load_state_dict(data["optimizer_state_dict"])
-                self.startepoch = saved_model_state['epoch']
+            data = torch.load(
+                os.path.join(old_checkpnts_dir, 'OptimizerParameters', str(kwargs['checkpoint']) + ".pth"))
+            self.optimizer.load_state_dict(data["optimizer_state_dict"])
+            self.startepoch = saved_model_state['epoch']
 
     def get_learning_rate_schedules(self, schedule_specs):
 
@@ -1226,11 +813,7 @@ if __name__ == '__main__':
     else:
         gpu = args.gpu
 
-
     nepoch = args.nepoch
-    if args.stage == 2:
-        nepoch = 2 * args.nepoch
-
     conf = ConfigFactory.parse_file('./conversion/' + args.conf)
     folderprefix = conf.get_string('train.folderprefix')
     fileprefix_list = conf.get_list('train.fileprefix_list')
