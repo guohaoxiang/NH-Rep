@@ -60,7 +60,6 @@ void update_minmax(const std::vector<double>& vs, double& vmin, double& vmax, in
 			iter++;
 		}
 	}
-	//std::cout << "longest inter: " << longest_inter << std::endl;
 	if (longest_inter * inter > 2 * M_PI - TH_CIRCLE)
 	{
 		vmin = 0.0;
@@ -184,11 +183,9 @@ vec3d get_nn_xyz(const vec3d& dir1, double max_angle_diff_degree)
 	}
 }
 
-//bool check_patch_uv_order(std::vector<std::vector<vec3d>>& input, std::vector<std::vector<vec3d>>& output)
 bool check_patch_uv_order(const std::vector<vec3d>& input, int udim, int vdim, std::vector<vec3d>& output)
 {
 	output.clear();
-	//int udim = input.size(), vdim = input.front().size();
 	double u_angle_diff = 0.0, v_angle_diff = 0.0;
 	for (int i = 1; i < udim - 1; i++)
 	{
@@ -251,8 +248,6 @@ bool check_patch_uv_order(const std::vector<vec3d>& input, int udim, int vdim, s
 void get_vertical_vectors(const vec3d& normal, vec3d& u, vec3d& v)
 {
 	//rotate z direction of stadard frame to input
-	//normal = normal / normal.L2Norm();
-	//double sin_theta = sqrt(1 - normal[2] * normal[2]);
 	vec3d xdir(1.0, 0.0, 0.0), ydir(0.0, 1.0, 0.0);
 
 	v = normal.Cross(xdir);
@@ -299,7 +294,6 @@ void get_tri_area_normal(const std::vector<vec3d>& pts, const std::vector<std::v
 			area.push_back(sqrt(tmp));
 		else
 			area.push_back(0.0);
-		//area.push_back(sqrt(s * (s - a) * (s - b) * (s - c)));
 		vec3d v1 = pts[faces[i][1]] - pts[faces[i][0]];
 		vec3d v2 = pts[faces[i][2]] - pts[faces[i][0]];
 		vec3d normal = v1.Cross(v2);
@@ -318,7 +312,6 @@ void convert_grid_to_trimesh(const std::vector<vec3d>& pts, int u_split, int v_s
 	{
 		for (size_t k = 0; k < v_split - 1; k++)
 		{
-			//faces.push_back(std::vector<size_t>({ counter + j * v_split + k, counter + (j + 1) * v_split + k, counter + (j + 1) * v_split + k + 1, counter + j * v_split + k + 1 }));
 			faces.push_back(std::vector<size_t>({ counter + j * v_split + k, counter + (j + 1) * v_split + k, counter + (j + 1) * v_split + k + 1 }));
 			faces.push_back(std::vector<size_t>({ counter + j * v_split + k, counter + (j + 1) * v_split + k + 1, counter + j * v_split + k + 1 }));
 
@@ -329,7 +322,6 @@ void convert_grid_to_trimesh(const std::vector<vec3d>& pts, int u_split, int v_s
 	{
 		for (size_t j = 0; j < v_split - 1; j++)
 		{
-			//faces.push_back(std::vector<size_t>({ counter + (u_split - 1) * v_split + j, counter + j, counter + j + 1, counter + (u_split - 1) * v_split + j + 1 }));
 			faces.push_back(std::vector<size_t>({ counter + (u_split - 1) * v_split + j, counter + j, counter + j + 1 }));
 			faces.push_back(std::vector<size_t>({ counter + (u_split - 1) * v_split + j,  counter + j + 1, counter + (u_split - 1) * v_split + j + 1 }));
 		}
@@ -339,7 +331,6 @@ void convert_grid_to_trimesh(const std::vector<vec3d>& pts, int u_split, int v_s
 	{
 		for (size_t j = 0; j < u_split - 1; j++)
 		{
-			//faces.push_back(std::vector<size_t>({ counter + j * v_split + v_split - 1, counter + (j + 1) * v_split + v_split - 1, counter + (j + 1) * v_split, counter + j * v_split }));
 			faces.push_back(std::vector<size_t>({ counter + j * v_split + v_split - 1, counter + (j + 1) * v_split + v_split - 1, counter + (j + 1) * v_split }));
 			faces.push_back(std::vector<size_t>({ counter + j * v_split + v_split - 1, counter + (j + 1) * v_split, counter + j * v_split }));
 		}
@@ -347,7 +338,6 @@ void convert_grid_to_trimesh(const std::vector<vec3d>& pts, int u_split, int v_s
 
 	if (u_closed && v_closed)
 	{
-		//faces.push_back(std::vector<size_t>({ counter, counter + (u_split - 1) * v_split, counter + u_split * v_split - 1, counter + v_split - 1 }));
 		faces.push_back(std::vector<size_t>({ counter, counter + (u_split - 1) * v_split, counter + u_split * v_split - 1 }));
 		faces.push_back(std::vector<size_t>({ counter, counter + u_split * v_split - 1, counter + v_split - 1 }));
 	}
@@ -359,7 +349,6 @@ void get_rotmat_from_normal(const vec3d& normal, ColumnMatrix3d& mat)
 	double sin_theta = sqrt(1 - normal[2] * normal[2]);
 	if (abs(sin_theta) < epsilon)
 	{
-		//std::cout << "vertical normal" << std::endl;
 		mat.SetEntries(1, 0, 0, 0, 1, 0, 0, 0, 1, false); //identity
 	}
 	else
@@ -407,14 +396,6 @@ void save_obj_grouped(const std::string& fn, const std::vector<std::vector<vec3d
 	std::random_device rd;
 	std::mt19937 e2(rd());
 	std::uniform_real_distribution<double> unif_dist(0, 1);
-	/*std::ofstream ofs("complexgen.mtl");
-	for (size_t i = 0; i < 50; i++)
-	{
-		ofs << "newmtl m" << i << std::endl;
-		ofs << "Kd " << unif_dist(e2) << " " << unif_dist(e2) << " " << unif_dist(e2) << std::endl;
-		ofs << "Ka 0 0 0" <<  std::endl;
-	}
-	ofs.close();*/
 
 	//mtl
 	std::ofstream ofs;
@@ -444,7 +425,6 @@ void save_obj_grouped(const std::string& fn, const std::vector<std::vector<vec3d
 	
 }
 
-//void split_quad(const std::vector<std::vector<size_t>>& quad_faces, std::vector<std::vector<size_t>>& tri_faces)
 void split_quad(const std::vector<std::vector<size_t>>& quad_faces, std::vector<std::vector<size_t>>& tri_faces, std::vector<size_t>& face2patch)
 {
 	std::vector<size_t> face2patch_new;
@@ -504,16 +484,6 @@ void save_valid_curves_obj(const std::string& fn, const std::vector<std::vector<
 
 		if (cur_counter > 0)
 		{
-			////ofs << "l";
-			//for (size_t j = 0; j < cur_counter - 1; j++)
-			//{
-			//	ofs << "l " << j + vert_counter + 1 << " " << j + vert_counter + 2 << std::endl;
-			//}
-			//if (curve_close[i])
-			//{
-			//	ofs << "l " << vert_counter + cur_counter << " " << vert_counter + 1 << std::endl;
-			//}
-			////ofs << std::endl;
 
 			ofs << "l";
 			for (size_t j = 0; j < cur_counter; j++)
@@ -522,7 +492,6 @@ void save_valid_curves_obj(const std::string& fn, const std::vector<std::vector<
 			}
 			if (curve_close[i])
 			{
-				//ofs << "l " << vert_counter + cur_counter << " " << vert_counter + 1 << std::endl;
 				ofs << " " << vert_counter + 1;
 			}
 			ofs << std::endl;
@@ -551,16 +520,6 @@ void save_curves_obj(const std::string& fn, const std::vector<std::vector<vec3d>
 		
 		if (cur_counter > 0)
 		{
-			////ofs << "l";
-			//for (size_t j = 0; j < cur_counter - 1; j++)
-			//{
-			//	ofs << "l " << j + vert_counter + 1 << " " << j + vert_counter + 2 << std::endl;
-			//}
-			//if (curve_close[i])
-			//{
-			//	ofs << "l " << vert_counter + cur_counter << " " << vert_counter + 1 << std::endl;
-			//}
-			////ofs << std::endl;
 
 			ofs << "l";
 			for (size_t j = 0; j < cur_counter; j++)
@@ -620,7 +579,6 @@ void save_pts_color_ply(const std::string& fn, const std::vector<vec3d>& pts, co
 void estimate_normal_from_grid(const std::vector<vec3d>& input_pts, std::vector<vec3d>& input_normals, int xdim, int ydim, bool flag_xclose)
 {
 	input_normals.clear();
-	//int xdim = 10, ydim = 10;
 	assert(input_pts.size() == xdim * ydim);
 	int dirs[][4] = { {1,0,0,1},{0,1,-1,0},{-1,0,0,-1},{0,-1,1,0} };
 	int x1(-1), y1(-1), x2(-1), y2(-1);
@@ -735,16 +693,11 @@ void expand_grid_points(const std::vector<vec3d>& input_pts, int dim_u_input, in
 		input_pts_new.push_back(v_pos_neg);
 		input_pts_new.insert(input_pts_new.end(), v_pos.begin(), v_pos.end());
 		input_pts_new.push_back(v_pos_pos);
-
-		//input_pts = input_pts_new;
 		output_pts = input_pts_new;
-
 		dim_u_input = dim_u_input + 2;
 	}
 	else
 	{
-		/*input_pts.insert(input_pts.begin(), u_neg.begin(), u_neg.end());
-		input_pts.insert(input_pts.end(), u_pos.begin(), u_pos.end());*/
 		std::vector<vec3d> input_pts_new;
 		for (size_t i = 0; i < dim_u_input; i++)
 		{

@@ -9,7 +9,6 @@
 typedef TinyVector<double, 3> vec3d;
 using std::string;
 
-//void update_minmax(const std::vector<double>& vs, double& vmin, double& vmax, int split = 12);
 double safe_acos(double u);
 
 double safe_asin(double u);

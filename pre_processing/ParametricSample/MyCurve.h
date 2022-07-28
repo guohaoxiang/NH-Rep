@@ -150,64 +150,7 @@ protected:
     vec3d loc, dirx, diry;
     double x_radius, y_radius;
 };
-//////////////////////////////////////////////
-//class MySplineCurve : public MyCurve
-//{
-//public:
-//    MySplineCurve(
-//        int degree,
-//        const std::vector<gte::Vector<3, double>> &controls,
-//        const std::vector<double> &myknots,
-//        const std::vector<double> &myweights,
-//        double _t_min, double _t_max, bool _closed)
-//    {
-//        this->t_min = _t_min;
-//        this->t_max = _t_max;
-//        this->closed = _closed;
-//
-//        gte::BasisFunctionInput<double> my_input;
-//        my_input.degree = degree;
-//        my_input.numControls = (int)controls.size();
-//        my_input.periodic = _closed;
-//        my_input.uniform = false;
-//
-//        std::vector<std::pair<double, int>> knots_stataus;
-//        knots_stataus.push_back(std::make_pair(myknots[0], 1));
-//        for (size_t i = 1; i < myknots.size(); i++)
-//        {
-//            if (myknots[i] == knots_stataus.back().first)
-//                knots_stataus.back().second++;
-//            else
-//                knots_stataus.push_back(std::make_pair(myknots[i], 1));
-//        }
-//
-//        my_input.numUniqueKnots = (int)knots_stataus.size();
-//        my_input.uniqueKnots.resize(my_input.numUniqueKnots);
-//        for (size_t i = 0; i < knots_stataus.size(); i++)
-//        {
-//            my_input.uniqueKnots[i].t = knots_stataus[i].first;
-//            my_input.uniqueKnots[i].multiplicity = knots_stataus[i].second;
-//        }
-//        mycurve = new gte::NURBSCurve<3, double>(my_input, controls.data(), myweights.data());
-//    }
-//
-//    ~MySplineCurve()
-//    {
-//        if (mycurve)
-//            delete mycurve;
-//    }
-//
-//    vec3d GetPosition(double t)
-//    {
-//        gte::Vector<3, double> V = mycurve->GetPosition(t);
-//        return vec3d(V[0], V[1], V[2]);
-//    }
-//
-//protected:
-//    gte::NURBSCurve<3, double> *mycurve;
-//};
 
-//update version
 class MySplineCurve : public MyCurve
 {
 public:

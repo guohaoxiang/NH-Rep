@@ -253,100 +253,7 @@ protected:
     vec3d loc, xdir, ydir, zdir;
     double radius;
 };
-//////////////////////////////////////////////
-//class MySplineSurf : public MySurf
-//{
-//public:
-//    MySplineSurf(
-//        int u_degree, int v_degree,
-//        const std::vector<gte::Vector<3, double>> &controls,
-//        const std::vector<double> &my_uknots, const std::vector<double> &my_vknots,
-//        const std::vector<double> &myweights,
-//        bool _u_closed, bool _v_closed,
-//        double _u_min, double _u_max, double _v_min, double _v_max)
-//    {
-//        this->u_closed = _u_closed, this->v_closed = _v_closed;
-//        this->u_min = _u_closed ? 0 : _u_min, this->u_max = _u_closed ? 2 * M_PI : _u_max;
-//        this->v_min = _v_closed ? 0 : _v_min, this->v_max = _v_closed ? 2 * M_PI : _v_max;
-//
-//        gte::BasisFunctionInput<double> my_u_input;
-//        my_u_input.degree = u_degree;
-//        my_u_input.numControls = (int)my_uknots.size() - u_degree - 1;
-//        my_u_input.periodic = _u_closed;
-//        my_u_input.uniform = false;
-//        std::vector<std::pair<double, int>> knots_stataus;
-//        knots_stataus.push_back(std::make_pair(my_uknots[0], 1));
-//        for (size_t i = 1; i < my_uknots.size(); i++)
-//        {
-//            if (my_uknots[i] == knots_stataus.back().first)
-//                knots_stataus.back().second++;
-//            else
-//                knots_stataus.push_back(std::make_pair(my_uknots[i], 1));
-//        }
-//
-//        my_u_input.numUniqueKnots = (int)knots_stataus.size();
-//        my_u_input.uniqueKnots.resize(my_u_input.numUniqueKnots);
-//        for (size_t i = 0; i < knots_stataus.size(); i++)
-//        {
-//            my_u_input.uniqueKnots[i].t = knots_stataus[i].first;
-//            my_u_input.uniqueKnots[i].multiplicity = knots_stataus[i].second;
-//        }
-//
-//        gte::BasisFunctionInput<double> my_v_input;
-//        my_v_input.degree = v_degree;
-//        my_v_input.numControls = (int)my_vknots.size() - v_degree - 1;
-//        my_v_input.periodic = _v_closed;
-//        my_v_input.uniform = false;
-//
-//        knots_stataus.resize(0);
-//        knots_stataus.push_back(std::make_pair(my_vknots[0], 1));
-//        for (size_t i = 1; i < my_vknots.size(); i++)
-//        {
-//            if (my_vknots[i] == knots_stataus.back().first)
-//                knots_stataus.back().second++;
-//            else
-//                knots_stataus.push_back(std::make_pair(my_vknots[i], 1));
-//        }
-//
-//        my_v_input.numUniqueKnots = (int)knots_stataus.size();
-//        my_v_input.uniqueKnots.resize(my_v_input.numUniqueKnots);
-//        for (size_t i = 0; i < knots_stataus.size(); i++)
-//        {
-//            my_v_input.uniqueKnots[i].t = knots_stataus[i].first;
-//            my_v_input.uniqueKnots[i].multiplicity = knots_stataus[i].second;
-//        }
-//        mysurf = new gte::NURBSSurface<3, double>(my_u_input, my_v_input, controls.data(), myweights.data());
-//    }
-//
-//    ~MySplineSurf()
-//    {
-//        if (mysurf)
-//            delete mysurf;
-//    }
-//
-//    vec3d GetPosition(double u, double v)
-//    {
-//        gte::Vector<3, double> V = mysurf->GetPosition(u, v);
-//        return vec3d(V[0], V[1], V[2]);
-//    }
-//
-//    vec3d GetNormal(double u, double v)
-//    {
-//        gte::Vector<3, double> U = mysurf->GetUTangent(u, v);
-//        gte::Vector<3, double> V = mysurf->GetVTangent(u, v);
-//        vec3d uvec(U[0], U[1], U[2]);
-//        vec3d vvec(V[0], V[1], V[2]);
-//        vec3d normal = uvec.Cross(vvec);
-//        normal.Normalize();
-//        return normal;
-//    }
-//
-//protected:
-//    gte::NURBSSurface<3, double> *mysurf;
-//};
-//
 
-//update version
 class MySplineSurf : public MySurf
 {
 public:
@@ -359,8 +266,6 @@ public:
         double _u_min, double _u_max, double _v_min, double _v_max)
     {
         this->u_closed = _u_closed, this->v_closed = _v_closed;
-        // this->u_min = _u_closed ? 0 : _u_min, this->u_max = _u_closed ? 2 * M_PI : _u_max;
-        // this->v_min = _v_closed ? 0 : _v_min, this->v_max = _v_closed ? 2 * M_PI : _v_max;
         this->u_min = _u_min, this->u_max = _u_max;
         this->v_min = _v_min, this->v_max = _v_max;
 
@@ -391,7 +296,6 @@ public:
         gte::BasisFunctionInput<double> my_v_input;
         my_v_input.degree = v_degree;
         my_v_input.numControls = (int)my_vknots.size() - v_degree - 1;
-        //my_v_input.periodic = _v_closed;
         my_v_input.periodic = false;
         my_v_input.uniform = false;
 

@@ -12,19 +12,11 @@
 #include "MySurf.h"
 #include "Helper.h"
 #include "Mesh3D.h"
-//#include "CurveFitter.h"
-//#include "SurfFitter.h"
 #include "nanoflann.hpp"
 
 //for distance queries
 #include <igl/writeOBJ.h>
 #include <igl/AABB.h>
-
-//#ifdef _DEBUG
-//#pragma comment(lib, "yaml-cppd.lib")
-//#else
-//#pragma comment(lib, "yaml-cpp.lib")
-//#endif
 
 using namespace std;
 using namespace MeshLib;
@@ -33,7 +25,6 @@ typedef TinyVector<double, 3> vec3;
 
 void output_info(const std::string &str, bool flag_close, bool flag_legal_curve, bool flag_legal_patch, bool flag_consistency, bool flag_idvalid)
 {
-    //std::ofstream ofs1(filenamewithoutext + "_info.txt");
     std::ofstream ofs1(str);
 
     ofs1 << "watertight " << flag_close << std::endl;
@@ -172,11 +163,7 @@ bool sample_pts_from_mesh_parametric(const std::vector<TinyVector<double, 3>>& t
         double u = unif_dist(e2);
         auto iter = std::upper_bound(tri_bound.begin(), tri_bound.end(), u);
         int fid = (int)std::distance(tri_bound.begin(), iter);
-        //assert(fid != tri_verts.size() + 1);
         fid = std::max(0, fid - 1);
-        //sample
-        //int id0 = ungrouped_features[fid].first;
-        //int id1 = ungrouped_features[fid].second;
         double s = unif_dist(e2);
         double t = unif_dist(e2);
         if (s + t > 1)
@@ -216,11 +203,6 @@ bool sample_pts_from_mesh_parametric(const std::vector<TinyVector<double, 3>>& t
 
     return true;
 }
-//
-//int main()
-//{
-//    return 0;
-//}
 
 int main(int argc, char** argv)
 {
@@ -367,10 +349,8 @@ int main(int argc, char** argv)
                 break;
             }
             double valid_u_diff = valid_max_u - valid_min_u, valid_v_diff = valid_max_v - valid_min_v;
-            //for (size_t i = 0; i < vert_indices.size(); i++)
             for (size_t i = 0; i < face_indices.size(); i++)
             {
-                //std::cout << "vert id : " <<  << std::endl;
                 size_t fid = face_indices[i].as<size_t>();
                 if (fid >= n_mesh_faces)
                 {
@@ -382,7 +362,6 @@ int main(int argc, char** argv)
                 HE_edge<double>* iter = cur;
                 do
                 {
-                    //onepatch.push_back(iter->vert->pos);
                     iter = iter->next;
                 } while (iter != cur);
             }
@@ -421,10 +400,6 @@ int main(int argc, char** argv)
                 vec3 xdir(x_axis[0].as<double>(), x_axis[1].as<double>(), x_axis[2].as<double>());
                 vec3 ydir(y_axis[0].as<double>(), y_axis[1].as<double>(), y_axis[2].as<double>());
                 vec3 loc(location[0].as<double>(), location[1].as<double>(), location[2].as<double>());
-                //planes.push_back(MyPlane(loc, xdir, ydir, min_u, max_u, min_v, max_v));
-                //allsurfs.push_back(&planes.back());
-                //MySurf* tmp = new MyPlane();
-                //SurfFitter* tmp = new PlaneFitter(loc, xdir, ydir, min_u, max_u, min_v, max_v);
                 
                 MySurf* tmp = new MyPlane(loc, xdir, ydir, min_u, max_u, min_v, max_v);
 
@@ -433,13 +408,11 @@ int main(int argc, char** argv)
             }
             else if (type == "Cylinder")
             {
-                //todo: check oneside closeness
                 const auto& location = s["location"];
                 const auto& x_axis = s["x_axis"];
                 const auto& y_axis = s["y_axis"];
                 const auto& z_axis = s["z_axis"];
                 const auto radius = s["radius"].as<double>();
-                //const auto &coefficients = s["coefficients"];
 
                 u_scale = 0.001;
                 double max_u = 0.001 * valid_max_u, min_u = 0.001 * valid_min_u, max_v = valid_max_v, min_v = valid_min_v;
@@ -448,7 +421,6 @@ int main(int argc, char** argv)
                 vec3 ydir(y_axis[0].as<double>(), y_axis[1].as<double>(), y_axis[2].as<double>());
                 vec3 zdir(z_axis[0].as<double>(), z_axis[1].as<double>(), z_axis[2].as<double>());
                 vec3 loc(location[0].as<double>(), location[1].as<double>(), location[2].as<double>());
-                //bool u_closed = (num_loop >= 2);
                 bool u_closed = u_is_closed;
 
                 MySurf* tmp = new MyCylinder(loc, xdir, ydir, zdir, radius, u_closed, min_u, max_u, min_v, max_v);
@@ -484,18 +456,12 @@ int main(int argc, char** argv)
                     }
                 }
 
-                //cones.push_back(MyCone(loc, xdir, ydir, zdir, radius, angle, u_closed, min_u, max_u, min_v, max_v));
-                ////allsurfs.push_back(&cones.back());
-                //SurfFitter* tmp = new ConeFitter(loc, xdir, ydir, zdir, radius, angle, u_closed, min_u, max_u, min_v, max_v);
-                //allsurfs.push_back(tmp);
-
                 MySurf* tmp = new MyCone(loc, xdir, ydir, zdir, radius, angle, u_closed, min_u, max_u, min_v, max_v);
                 allsurfs.push_back(tmp);
 
             }
             else if (type == "Torus")
             {
-                //todo: check oneside closeness
                 const auto& location = s["location"];
                 const auto& x_axis = s["x_axis"];
                 const auto& y_axis = s["y_axis"];
@@ -511,17 +477,6 @@ int main(int argc, char** argv)
                 vec3 ydir(y_axis[0].as<double>(), y_axis[1].as<double>(), y_axis[2].as<double>());
                 vec3 zdir(z_axis[0].as<double>(), z_axis[1].as<double>(), z_axis[2].as<double>());
                 vec3 loc(location[0].as<double>(), location[1].as<double>(), location[2].as<double>());
-
-                /*bool u_closed = false, v_closed = false;
-                if (num_loop == 0)
-                {
-                    u_closed = v_closed = true;
-                }
-                else if (num_loop >= 2)
-                {
-                    u_closed = true;
-                    v_closed = false;
-                }*/
 
                 bool u_closed = u_is_closed, v_closed = v_is_closed;
                 if (u_closed && v_closed && num_loop != 0)
@@ -546,11 +501,6 @@ int main(int argc, char** argv)
                         update_minmax(vs, min_v, max_v);
                     }
                 }
-
-                //toruses.push_back(MyTorus(loc, xdir, ydir, zdir, max_radius, min_radius, u_closed, v_closed, min_u, max_u, min_v, max_v));
-                ////allsurfs.push_back(&toruses.back());
-                //SurfFitter* tmp = new TorusFitter(loc, xdir, ydir, zdir, max_radius, min_radius, u_closed, v_closed, min_u, max_u, min_v, max_v);
-                //allsurfs.push_back(tmp);
 
                 MySurf* tmp = new MyTorus(loc, xdir, ydir, zdir, max_radius, min_radius, u_closed, v_closed, min_u, max_u, min_v, max_v);
                 allsurfs.push_back(tmp);
@@ -582,27 +532,11 @@ int main(int argc, char** argv)
                 vec3 zdir = xdir.UnitCross(ydir);
                 vec3 loc(location[0].as<double>(), location[1].as<double>(), location[2].as<double>());
 
-                /* bool u_closed = false, v_closed = false;
-                 if (num_loop == 0)
-                 {
-                     u_closed = v_closed = true;
-                 }
-                 else if (num_loop >= 2)
-                 {
-                     u_closed = false;
-                     v_closed = true;
-                 }*/
-
                 bool u_closed = u_is_closed, v_closed = v_is_closed;
                 if (u_closed && v_closed && num_loop != 0)
                 {
                     v_closed = false;
                 }
-                //spheres.push_back(MySphere(loc, xdir, ydir, zdir, radius, u_closed, v_closed, min_u, max_u, min_v, max_v));
-                ////allsurfs.push_back(&spheres.back());
-                //SurfFitter* tmp = new SphereFitter(loc, xdir, ydir, zdir, radius, u_closed, v_closed, min_u, max_u, min_v, max_v);
-                //allsurfs.push_back(tmp);
-
                 MySurf* tmp = new MySphere(loc, xdir, ydir, zdir, radius, u_closed, v_closed, min_u, max_u, min_v, max_v);
                 allsurfs.push_back(tmp);
 
@@ -662,13 +596,6 @@ int main(int argc, char** argv)
                     {
                         min_u = myknots[degree], max_u = myknots[myknots.size() - degree - 1];
                     }
-                    /*if (closed)
-                    {
-                        min_u = 0, max_u = 1;
-                    }*/
-                    /*revolutionsurfs.push_back(new MyRevolutionSurf(degree, loc, zvec, controls, myknots, myweights, closed, v_closed, min_u, max_u, min_v, max_v));
-                    SurfFitter* tmp = new RevolutionFitter(degree, loc, zvec, controls, myknots, myweights, closed, v_closed, min_u, max_u, min_v, max_v);
-                    allsurfs.push_back(tmp);*/
 
                     MySurf* tmp = new MyRevolutionSurf(degree, loc, zvec, controls, myknots, myweights, closed, v_closed, min_u, max_u, min_v, max_v);
                     allsurfs.push_back(tmp);
@@ -684,9 +611,6 @@ int main(int argc, char** argv)
                     vec3 dir(direction[0].as<double>(), direction[1].as<double>(), direction[2].as<double>());
                     vec3 start = c_loc + vert_parameters[0].as<double>() * dir;
                     vec3 end = c_loc + vert_parameters[vert_parameters.size() - 1].as<double>() * dir;
-                    /*revolutionsurfs.push_back(new MyRevolutionSurf(start, end, loc, zvec, v_closed, min_u, max_u, min_v, max_v));
-                    SurfFitter* tmp = new RevolutionFitter(start, end, loc, zvec, v_closed, min_u, max_u, min_v, max_v);
-                    allsurfs.push_back(tmp);*/
 
                     allsurfs.push_back(new MyRevolutionSurf(start, end, loc, zvec, v_closed, min_u, max_u, min_v, max_v));
                 }
@@ -706,9 +630,6 @@ int main(int argc, char** argv)
                         min_u = 0;
                         max_u = M_PI * 2;
                     }
-                    /*revolutionsurfs.push_back(new MyRevolutionSurf(c_loc, dirx, diry, radius, is_closed, v_closed, loc, zvec, min_u, max_u, min_v, max_v));
-                    SurfFitter* tmp = new RevolutionFitter(c_loc, dirx, diry, radius, is_closed, v_closed, loc, zvec, min_u, max_u, min_v, max_v);
-                    allsurfs.push_back(tmp);*/
                     
                     allsurfs.push_back(new MyRevolutionSurf(c_loc, dirx, diry, radius, is_closed, v_closed, loc, zvec, min_u, max_u, min_v, max_v));
                 }
@@ -735,15 +656,9 @@ int main(int argc, char** argv)
                         min_u = 0;
                         max_u = M_PI * 2;
                     }
-
-                   /* revolutionsurfs.push_back(new MyRevolutionSurf(c_loc, dirx, diry, x_radius, y_radius, is_closed, v_closed, loc, zvec, min_u, max_u, min_v, max_v));
-                    SurfFitter* tmp = new RevolutionFitter(c_loc, dirx, diry, x_radius, y_radius, is_closed, v_closed, loc, zvec, min_u, max_u, min_v, max_v);
-                    allsurfs.push_back(tmp);*/
                     
                     allsurfs.push_back(new MyRevolutionSurf(c_loc, dirx, diry, x_radius, y_radius, is_closed, v_closed, loc, zvec, min_u, max_u, min_v, max_v));
                 }
-                //allsurfs.push_back(revolutionsurfs.back());
-                //not written temporarily
             }
             else if (type == "Extrusion")
             {
@@ -751,19 +666,6 @@ int main(int argc, char** argv)
                 const string type = profile["type"].as<string>(); //"Bspline"
                 const auto& direction = s["direction"];
                 vec3 zvec(direction[0].as<double>(), direction[1].as<double>(), direction[2].as<double>());
-                //double max_u = -DBL_MAX, min_u = DBL_MAX, max_v = -DBL_MAX, min_v = DBL_MAX;
-                //for (size_t i = 0; i < vert_parameters.size(); i++)
-                //{
-                //    double u = vert_parameters[i][0].as<double>();
-                //    double v = vert_parameters[i][1].as<double>();
-                //    if (!std::isinf(u))
-                //        max_u = std::max(u, max_u), min_u = std::min(u, min_u);
-                //    if (!std::isinf(v))
-                //        max_v = std::max(v, max_v), min_v = std::min(v, min_v);
-                //    //max_u = std::max(u, max_u), min_u = std::min(u, min_u);
-                //    //max_v = std::max(v, max_v), min_v = std::min(v, min_v);
-                //}
-                //max_u *= 0.001, min_u *= 0.001;
 
                 double max_u = 0.001 * valid_max_u, min_u = 0.001 * valid_min_u, max_v = valid_max_v, min_v = valid_min_v;
 
@@ -801,15 +703,6 @@ int main(int argc, char** argv)
                     {
                         min_u = myknots[degree], max_u = myknots[myknots.size() - degree - 1];
                     }
-                    /*if (closed)
-                    {
-                        min_u = 0, max_u = 1;
-                    }*/
-                    //extrusionsurfs.push_back(new MyExtrusionSurf(degree, zvec, controls, myknots, myweights, closed, min_u, max_u, min_v, max_v));
-
-                    ////allsurfs
-                    //SurfFitter* tmp = new ExtrusionFitter(degree, zvec, controls, myknots, myweights, closed, min_u, max_u, min_v, max_v);
-                    //allsurfs.push_back(tmp);
                     
                     allsurfs.push_back(new MyExtrusionSurf(degree, zvec, controls, myknots, myweights, closed, min_u, max_u, min_v, max_v));
 
@@ -824,10 +717,6 @@ int main(int argc, char** argv)
                     vec3 dir(direction[0].as<double>(), direction[1].as<double>(), direction[2].as<double>());
                     vec3 start = loc + vert_parameters[0].as<double>() * dir;
                     vec3 end = loc + vert_parameters[vert_parameters.size() - 1].as<double>() * dir;
-                    /*extrusionsurfs.push_back(new MyExtrusionSurf(start, end, zvec, min_u, max_u, min_v, max_v));
-
-                    SurfFitter* tmp = new ExtrusionFitter(start, end, zvec, min_u, max_u, min_v, max_v);
-                    allsurfs.push_back(tmp);*/
                     
                     allsurfs.push_back(new MyExtrusionSurf(start, end, zvec, min_u, max_u, min_v, max_v));
                 }
@@ -847,9 +736,6 @@ int main(int argc, char** argv)
                         min_u = 0;
                         max_u = M_PI * 2;
                     }
-                    /*extrusionsurfs.push_back(new MyExtrusionSurf(loc, dirx, diry, radius, is_closed, zvec, min_u, max_u, min_v, max_v));
-                    SurfFitter* tmp = new ExtrusionFitter(loc, dirx, diry, radius, is_closed, zvec, min_u, max_u, min_v, max_v);
-                    allsurfs.push_back(tmp);*/
 
                     allsurfs.push_back(new MyExtrusionSurf(loc, dirx, diry, radius, is_closed, zvec, min_u, max_u, min_v, max_v));
                     
@@ -877,18 +763,12 @@ int main(int argc, char** argv)
                         min_u = 0;
                         max_u = M_PI * 2;
                     }
-
-                    /*extrusionsurfs.push_back(new MyExtrusionSurf(loc, dirx, diry, x_radius, y_radius, is_closed, zvec, min_u, max_u, min_v, max_v));
-                    SurfFitter* tmp = new ExtrusionFitter(loc, dirx, diry, x_radius, y_radius, is_closed, zvec, min_u, max_u, min_v, max_v);
-                    allsurfs.push_back(tmp);*/
                     
                     allsurfs.push_back(new MyExtrusionSurf(loc, dirx, diry, x_radius, y_radius, is_closed, zvec, min_u, max_u, min_v, max_v));
                 }
-                //allsurfs.push_back(extrusionsurfs.back());
             }
             else if (type == "BSpline")
             {
-                //allsurfs.push_back(splinesurfs.back());
                 const auto u_rational = s["u_rational"].as<bool>();
                 const auto v_rational = s["v_rational"].as<bool>();
                 const auto u_closed = s["u_closed"].as<bool>();
@@ -932,14 +812,6 @@ int main(int argc, char** argv)
                     }
                 }
 
-                /*for (size_t i = 0; i < weights.size(); i++)
-                {
-                    for (size_t j = 0; j < weights[i].size(); j++)
-                    {
-                        myweights[i + j * weights.size()] = weights[i][j].as<double>();
-                    }
-                }*/
-
                 double max_u = 0.001 * valid_max_u, min_u = 0.001 * valid_min_u, max_v = 0.001 * valid_max_v, min_v = 0.001 * valid_min_v;
                 u_scale = 0.001, v_scale = 0.001;
 
@@ -952,15 +824,6 @@ int main(int argc, char** argv)
                 {
                     min_v = my_vknots[v_degree], max_v = my_vknots[my_vknots.size() - v_degree - 1];
                 }
-
-                /*splinesurfs.push_back(new MySplineSurf(
-                    u_degree, v_degree, controls, my_uknots, my_vknots,
-                    myweights, u_closed, v_closed, min_u, max_u, min_v, max_v));
-
-                SurfFitter* tmp = new SplineFitter(
-                    u_degree, v_degree, controls, my_uknots, my_vknots,
-                    myweights, u_closed, v_closed, min_u, max_u, min_v, max_v);
-                allsurfs.push_back(tmp);*/
 
                 allsurfs.push_back(new MySplineSurf(
                     u_degree, v_degree, controls, my_uknots, my_vknots,
@@ -1003,36 +866,6 @@ int main(int argc, char** argv)
                 face_info fi;
                 fi.surf_type = type; //including other
                 fi.face_index = selected_facets[i];
-                /*if (type == "Plane")
-                {
-                    fi.surf_index = (int)planes.size() - 1;
-                }
-                else if (type == "Cylinder")
-                {
-                    fi.surf_index = (int)cylinders.size() - 1;
-                }
-                else if (type == "Torus")
-                {
-                    fi.surf_index = (int)toruses.size() - 1;
-                }
-                else if (type == "Sphere")
-                {
-                    fi.surf_index = (int)spheres.size() - 1;
-                }
-                else if (type == "Revolution")
-                {
-                    fi.surf_index = (int)revolutionsurfs.size() - 1;
-                }
-                else if (type == "Extrusion")
-                {
-                    fi.surf_index = (int)extrusionsurfs.size() - 1;
-                }
-                else if (type == "BSpline")
-                {
-                    fi.surf_index = (int)splinesurfs.size() - 1;
-                }
-                else
-                    continue;*/
 
                 fi.surf_index = (int)allsurfs.size() - 1;
 
@@ -1312,39 +1145,6 @@ int main(int argc, char** argv)
                 au /= fi.u.size(), av /= fi.v.size();
             }
             vec3 p, pn;
-            //if (type == "Plane")
-            //{
-            //    planes[surf_index].GetPosition_and_Normal(au, av, p, pn);
-            //}
-            //else if (type == "Cylinder")
-            //{
-            //    cylinders[surf_index].GetPosition_and_Normal(au, av, p, pn);
-            //}
-            //else if (type == "Torus")
-            //{
-            //    toruses[surf_index].GetPosition_and_Normal(au, av, p, pn);
-            //}
-            //else if (type == "Sphere")
-            //{
-            //    spheres[surf_index].GetPosition_and_Normal(au, av, p, pn);
-            //}
-            //else if (type == "Revolution")
-            //{
-            //    revolutionsurfs[surf_index]->GetPosition_and_Normal(au, av, p, pn);
-            //}
-            //else if (type == "Extrusion")
-            //{
-            //    extrusionsurfs[surf_index]->GetPosition_and_Normal(au, av, p, pn);
-            //}
-            //else if (type == "BSpline")
-            //{
-            //    splinesurfs[surf_index]->GetPosition_and_Normal(au, av, p, pn);
-            //}
-            //else
-            //{
-            //    //write triangle directly
-            //    continue;
-            //}
             
             if (type != "Other")
             {
@@ -1356,7 +1156,6 @@ int main(int argc, char** argv)
                 }
             }
 
-            //samplefile << "v " << p << std::endl << "vn " << pn << std::endl;
             samplefile << p << ' ' << pn << std::endl;
         }
         samplefile.close();
