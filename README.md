@@ -8,7 +8,7 @@ This is the official implementation of the following paper:
 
 Guo H X, Liu Y, Pan H, Guo B N. NH-Rep: Neural Halfspace Representations for Implicit Conversion of B-Rep Solids. 
 
-[Paper（to do）]() | [Project Page(to do)]()
+[Paper(to do)]() | [Project Page(to do)]()
 
 Abstract: _We present a novel implicit representation  -- neural halfspace representation (NH-Rep), to convert manifold B-Rep solids to implicit representation. NH-Rep is a Boolean tree built on a set of implicit functions represented by neural network, and the composite Boolean function is capable of representing solid geometry while preserving sharp features. We propose an efficient algorithm to extract the Boolean tree from a Manifold B-Rep solid and devise a neural-network-based optimization approach to compute implicit functions.
 We demonstrate the high quality offered by our conversion algorithm on ten thousand manifold B-Rep CAD models that contain various curved patches including NURBS, and the superiority of our learning approach over other representative implicit conversion algorithms in terms of surface reconstruction, sharp feature preservation, signed distance field approximation, and robustness to various surface geometry, as well as applications supported by NH-Rep._
@@ -16,7 +16,6 @@ We demonstrate the high quality offered by our conversion algorithm on ten thous
 The code has been tested on a Ubuntu 18.04 server with CUDA 10.2 installed.
 
 ## Installation
-
 
 
 **Via Docker**
@@ -32,7 +31,7 @@ Then you can convert the points sampled on B-Rep model in _input\_data_ to impli
         $ cd conversion
         $ python run.py --conf setup.conf --pt output_data
 
-The training will take about 8 minutes to finish. Currently we only support one-gpu training, you can set gpu id via _--gpu_ flag. The output neural implicit function (broken_bullet_50k_model_h.pt) are stored in folder _output\_data_, whose zero surface can be extracted with our iso-surface generator:
+The training will take about 8 minutes to finish. Currently we only support training with one gpu, you can set gpu id via _--gpu_ flag. The output neural implicit function (broken_bullet_50k_model_h.pt) are stored in folder _output\_data_, whose zero surface can be extracted with our iso-surface generator:
 
         $ cd ../output_data
         $ /usr/myapp/ISG -i broken_bullet_50k_model_h.pt -o broken_bullet_50k.ply -d 8
@@ -50,45 +49,45 @@ Meanwhile, you need to build iso-surface generator mannually, please refer [here
 
 After that, you can conduct implicit conversion and iso-surface extraction as mentioned above.
 
-## Data downloading (to do)
-We provide the pre-processed ABC dataset used for training and evaluating ComplexNet [here](https://pan.baidu.com/s/1PStVn2h_kkKtYsc-LYF7sQ?pwd=asdf), which can be extracted by [7-Zip](https://www.7-zip.org/). You can find the details of pre-processing pipelines in the [supplemental material](https://haopan.github.io/data/ComplexGen_supplemental.zip) of our paper.
-
-The data contains surface points along with normals, and its ground truth B-Rep labels. After extracting the zip file under root directory, the data should be organized as the following structure:
+## Data downloading
+We provide the pre-processed ABC dataset used for training NH-Rep [here](https://pan.baidu.com/s/1F8kKQM7AcOPBrl1oqLgJQA?pwd=asdf), which can be extracted by [7-Zip](https://www.7-zip.org/). Please unzip it under the root folder. For each model, there will be 3 input items:
 ```
-ComplexGen
-│
-└─── data
-    │
-    └─── default
-    │   │
-    |   └─── train
-    │   │
-    |   └─── val
-    │   │
-    |   └─── test
-    |   |   
-    |   └─── test_point_clouds
-    |        
-    └─── partial
-        │
-        └─── ...
+*_50k.xyz: 50,000 sampled points of the input B-Rep, can be visualized with MeshLab.
+*_50k_mask.txt: (patch_id + 1) of sampled points.
+*_50k_csg.conf: Boolean tree built on the patches, stored in nested lists. 'flag_convex' indicates the convexity of the root node. 
+```
+For example, ./input_data/broken_bullet_50k_csg.conf looks like:
+```
+csg{
+    list = [0,1,[2,3,4,],],
+    flag_convex = 1,
+}
+```
+The operation of root node is op(convex) = max, the root node contains 2 patch leaf node 'p_0' and 'p_1', and a child tree node. The child tree node contains 3 patch leaf node 'p_2', 'p_3' and 'p_4'. So the Boolean tree looks like:
+
+```
+     max
+   /  |  \
+  /   |   \    
+p_0  p_1  min 
+        /  |  \
+       /   |   \ 
+      p_2 p_3  p_4
 ```
 
-<!-- Here _noise_002_ and _noise_005_ means noisy point clouds with normal-distribution-perturbation of mean value _0.02_ and _0.05_ respectively. -->
+If you want to generate our training data from the raw ABC dataset, please refer [here](pre_processing/README.md).
 
-**\[Optional\]** You can also find the output of each phase [here](https://pan.baidu.com/s/1vO0nTSBbCw52EWUDZI7X4g?pwd=asdf). For each test model, there will be 4 or 5 outputs:
+**\[Optional\]** You can also download the output of NH-Rep [here](https://pan.baidu.com/s/1ogCm5SPUHzFmDOOKngisLQ?pwd=asdf). For each model, there will be 2 outputs:
 ```
-*_input.ply: Input point cloud
-*_prediction.pkl: Output of 'ComplexNet prediction' phase
-*_prediction.complex: Visualizable file for *_prediction.pkl, elements with valid probability larger than 0.3 are kept.
-*_extraction.complex: Output of 'complex extraction' phase
-*_geom_refine.json: Output of 'geometric refinement' phase, which is also the final output.
+*_50k_model_h.pt: implicit function of root node stored with TorchScript.
+*_50k.ply: extracted zero surface of the implicit function.
 ```
-The description and visualization of each file type can be found in [pickle description](docs/network_prediction_pickle_description.md), [complex description](docs/complex_extraction_complex_description.md) and [json description](docs/geometric_refinement_json_description.md). If you want to directly evaluate the provided output data of ComplexGen, please put the extracted _experiments_ folder under root folder _ComplexGen_, and conduct [Environment setup](https://github.com/guohaoxiang/ComplexGen#environment-setup-with-docker) and [Evaluation](https://github.com/guohaoxiang/ComplexGen#evaluation)
 
-## Training the whole dataset
+With the provided output data, you can skip training and directly go to the evaluation part. 
 
-To train the whole dataset from scratch, run:
+## Training for the whole dataset
+
+To convert the whole dataset to neural halfspace representation by training from scratch, run:
 
         $ cd PATH_TO_NH-REP/conversion
         $ python run.py --conf setup_all.conf --pt output_data
@@ -109,11 +108,13 @@ Then you can evaluate the conversion quality (CD, HD, NAE, FCD, FAE) of the brok
         $ cd PATH_TO_NH-REP/evaluation
         $ python evaluation.py 
 
-To evaluate the whole dataset, run:
+To evaluate the whole dataset, please download [eval_data](https://pan.baidu.com/s/1XEy9H_mI43Egl3-wYYutfQ?pwd=asdf) and unzip it under the root folder, then run:
 
         $ python evaluation.py --name_list all_names.txt
 
 Statistics will be stored in _eval_results.csv_.
+
+The *.ptangle* file used for evaluation stores position and dihedral angle (in degree) of points uniformly sampled on sharp features of a model.
 
 To evaluate the DE and IoU metric, you need to download ground truth mesh data from [here](https://pan.baidu.com/s/1uob8xASuUbXzJyuo9EsOZA?pwd=asdf), and unzip it under the root folder. You also need to build _IsoSurfaceGen_, then switch to folder _PATH_TO_NH-REP/output_data_, run:
 
