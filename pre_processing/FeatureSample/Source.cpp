@@ -698,7 +698,7 @@ int main(int argc, char** argv)
 				std::map<std::pair<size_t, size_t>, double> fp2product;
 				
 				//construct csg tree by voting				
-				std::map<std::pair<size_t, size_t>, int> flag_fpconvex; //update 1203, 0: smooth, 1: convex, 2:concave
+				std::map<std::pair<size_t, size_t>, int> flag_fpconvex; //0: smooth, 1: convex, 2:concave
 				//color - 1
 				
 				//face pair convexity is determined by grouped edges
@@ -917,45 +917,36 @@ int main(int argc, char** argv)
 
 				//if all features are concave, then flag_convex set to false
 
+				bool flag_with_convex = false;
+
+				for (const auto &it : flag_fpconvex)
+				{
+					if (it.second == 1)
+					{
+						flag_with_convex = true;
+						break;
+					}
+				}
+
+				if (!flag_with_convex)
+					flag_convex = false;
+
 				std::vector<std::set<size_t>> components;
 				get_graph_component(connectivity, components);
 
 				bool flag_construct_tree = true;
 				std::vector<size_t> invalid_subgraph;
-				if (components.size() == 1)
+				if (components.size() == 1) 
 				{ 
-					flag_construct_tree = get_tree_from_convex_graph(connectivity, flag_fpconvex, true, tree, 0, invalid_subgraph);
+					flag_construct_tree = get_tree_from_convex_graph(connectivity, flag_fpconvex, flag_convex, tree, 0, invalid_subgraph);
 					
 					if (!flag_construct_tree)
 					{
 						delete tree;
 						tree = new TreeNode<size_t>;
 						invalid_subgraph.clear();
-						flag_construct_tree = get_tree_from_convex_graph(connectivity, flag_fpconvex, false, tree, 0, invalid_subgraph);
+						flag_construct_tree = get_tree_from_convex_graph(connectivity, flag_fpconvex, !flag_convex, tree, 0, invalid_subgraph);
 
-					}
-				}
-				else
-				{
-					flag_convex = false;
-					for (size_t ic = 0; ic < components.size(); ic++)
-					{
-						std::vector<std::set<size_t>> subgraph(connectivity.size());
-						for (auto v : components[ic])
-						{
-							for (auto vn : connectivity[v])
-							{
-								if (std::find(components[ic].begin(), components[ic].end(), vn) != components[ic].end())
-								{
-									subgraph[v].insert(vn);
-								}
-							}
-						}
-						TreeNode<size_t>* child = new TreeNode<size_t>;
-						flag_construct_tree = get_tree_from_convex_graph(subgraph, flag_fpconvex, !flag_convex, child, 1, invalid_subgraph);
-						if (!flag_construct_tree)
-							break;
-						tree->children.push_back(child);
 					}
 				}
 
