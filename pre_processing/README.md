@@ -10,14 +10,18 @@ Please first download the raw data of ABC dataset [here](https://pan.baidu.com/s
 
 **Installation**
 
-Please first install the Boost and eigen3 library, then run
+Please first install the Boost and eigen3 library, you can install them via [homebrew](https://brew.sh/):
+
+        $ brew install boost
+        $ brew install eigen
+Then run:
 
         $ cd PATH_TO_NH-REP/pre_processing
         $ mkdir build && cd build
         $ cmake ..
         $ make
 
-Then you can generate the training data:
+You can generate the training data:
 
         $ python gen_training_data_yaml.py
 
