@@ -14,12 +14,9 @@
 void MaxFlow(int n_vert, const vector<std::pair<int, int>> &edge_array, const vector<double> &cap, int sink, int tar, vector<double>& output_flow)
 {
 	//neighboring information need to be considered carefully
-
 	output_flow.clear();
-	
 	assert(edge_array.size() == cap.size());
 	assert(sink >= 0 && sink < n_vert && tar >= 0 && tar < n_vert);
-	//std::cout << "max flow" << std::endl;
 	using namespace boost;
 
 	typedef adjacency_list_traits < vecS, vecS, directedS > Traits;
@@ -34,12 +31,8 @@ void MaxFlow(int n_vert, const vector<std::pair<int, int>> &edge_array, const ve
 		property < edge_residual_capacity_t, double,
 		property < edge_reverse_t, Traits::edge_descriptor > > > > Graph;
 
-	//typedef std::pair<int, int> Edge;
 	typedef Traits::vertex_descriptor Vertex;
 	typedef Traits::edge_descriptor Edge;
-
-	//int n_vert = 8, n_edge = 20;
-
 
 	Graph g;
 
@@ -48,8 +41,6 @@ void MaxFlow(int n_vert, const vector<std::pair<int, int>> &edge_array, const ve
 	property_map < Graph, edge_residual_capacity_t >::type
 		residual_capacity = get(edge_residual_capacity, g);
 	property_map < Graph, edge_reverse_t >::type rev = get(edge_reverse, g);
-	//Traits::vertex_descriptor s = vertex(A, g), t = vertex(B, g);
-
 
 	property_map <Graph, vertex_color_t>::type
 		node_color = get(vertex_color, g);
@@ -79,7 +70,6 @@ void MaxFlow(int n_vert, const vector<std::pair<int, int>> &edge_array, const ve
 		if (!in1 || !in2) {
 			std::cerr << "unable to add edge ("
 				<< std::endl;
-			//return -1;
 		}
 
 		capacity[e1] = cap[i];
@@ -97,7 +87,6 @@ void MaxFlow(int n_vert, const vector<std::pair<int, int>> &edge_array, const ve
 	std::cout << "s " << flow << std::endl << std::endl;
 
 	graph_traits < Graph >::vertex_iterator u_iter, u_end;
-	//graph_traits < Graph >::out_edge_iterator ei, e_end;
 	graph_traits <Graph>::edge_iterator ei, e_end;
 	
 	std::map<std::pair<int, int>, double> edge2flow;
@@ -106,8 +95,6 @@ void MaxFlow(int n_vert, const vector<std::pair<int, int>> &edge_array, const ve
 	{
 		if (capacity[*ei] > -0.5)
 		{
-			/*std::cout << "f " << source(*ei, g) << " " << target(*ei, g) << " "
-				<< (capacity[*ei] - residual_capacity[*ei]) << " cap: " << capacity[*ei] << std::endl;*/
 			edge2flow[std::pair<int, int>(source(*ei, g), target(*ei, g))] = capacity[*ei] - residual_capacity[*ei];
 		} 
 	}
@@ -121,7 +108,6 @@ void MaxFlow(int n_vert, const vector<std::pair<int, int>> &edge_array, const ve
 
 
 	std::cout << "flow computing finished" << std::endl;
-	//return EXIT_SUCCESS;
 }
 
 void MinCutfromMaxFlow(int n_vert, const vector<std::pair<int, int>>& edge_array, const vector<double>& cap, int sink, int tar, vector<int>& part1, vector<int>& part2)
@@ -129,8 +115,6 @@ void MinCutfromMaxFlow(int n_vert, const vector<std::pair<int, int>>& edge_array
 	//input should be a directed graph
 	//get min cut from max flow result, store them in part1, part2
 	//part1 -> sink, part2->tar, excluded
-
-	//output_flow.clear();
 
 	assert(edge_array.size() == cap.size());
 	assert(sink >= 0 && sink < n_vert&& tar >= 0 && tar < n_vert);
@@ -149,12 +133,8 @@ void MinCutfromMaxFlow(int n_vert, const vector<std::pair<int, int>>& edge_array
 		property < edge_residual_capacity_t, double,
 		property < edge_reverse_t, Traits::edge_descriptor > > > > Graph;
 
-	//typedef std::pair<int, int> Edge;
 	typedef Traits::vertex_descriptor Vertex;
 	typedef Traits::edge_descriptor Edge;
-
-	//int n_vert = 8, n_edge = 20;
-
 
 	Graph g;
 
@@ -163,7 +143,6 @@ void MinCutfromMaxFlow(int n_vert, const vector<std::pair<int, int>>& edge_array
 	property_map < Graph, edge_residual_capacity_t >::type
 		residual_capacity = get(edge_residual_capacity, g);
 	property_map < Graph, edge_reverse_t >::type rev = get(edge_reverse, g);
-	//Traits::vertex_descriptor s = vertex(A, g), t = vertex(B, g);
 	Traits::vertex_descriptor s, t;
 
 	property_map <Graph, vertex_color_t>::type
@@ -206,32 +185,8 @@ void MinCutfromMaxFlow(int n_vert, const vector<std::pair<int, int>>& edge_array
 	std::vector<long> distance(num_vertices(g));
 	double flow = boykov_kolmogorov_max_flow(g, s, t);
 
-	/*std::cout << "c  The total flow:" << std::endl;
-	std::cout << "s " << flow << std::endl << std::endl;*/
-
 	graph_traits < Graph >::vertex_iterator u_iter, u_end;
 	graph_traits < Graph >::out_edge_iterator ei, e_end;
-	//graph_traits <Graph>::edge_iterator ei, e_end;
-
-
-	//std::map<std::pair<int, int>, double> edge2flow;
-
-	//for (boost::tie(ei, e_end) = edges(g); ei != e_end; ++ei)
-	//{
-	//	if (capacity[*ei] > -0.5)
-	//	{
-	//		/*std::cout << "f " << source(*ei, g) << " " << target(*ei, g) << " "
-	//			<< (capacity[*ei] - residual_capacity[*ei]) << " cap: " << capacity[*ei] << std::endl;*/
-	//		edge2flow[std::pair<int, int>(source(*ei, g), target(*ei, g))] = capacity[*ei] - residual_capacity[*ei];
-	//	}
-	//}
-
-	//assert(edge2flow.size() == edge_array.size());
-
-	//for (size_t i = 0; i < edge_array.size(); i++)
-	//{
-	//	//output_flow.push_back(edge2flow[edge_array[i]]);
-	//}
 
 	//direct get color
 	std::vector<int> label0(n_vert, 0);
@@ -243,8 +198,6 @@ void MinCutfromMaxFlow(int n_vert, const vector<std::pair<int, int>>& edge_array
 			label0[*u_iter] = 1;
 		}
 	}
-
-
 
 	for (int i = 0; i < n_vert; i++)
 	{
@@ -267,12 +220,6 @@ void MinCutfromMaxFlow(int n_vert, const vector<std::pair<int, int>>& edge_array
 #include <boost/property_map/property_map.hpp>
 #include <boost/typeof/typeof.hpp>
 
-//struct edge_t
-//{
-//	unsigned long first;
-//	unsigned long second;
-//};
-
 typedef std::pair<int, int> edge_t;
 
 void MinCut(int n_vert, const vector<std::pair<int, int>> &edge, const vector<double> &cap, vector<int> &part1, vector<int> &part2)
@@ -284,29 +231,14 @@ void MinCut(int n_vert, const vector<std::pair<int, int>> &edge, const vector<do
 	typedef boost::property_map<undirected_graph, boost::edge_weight_t>::type weight_map_type;
 	typedef boost::property_traits<weight_map_type>::value_type weight_type;
 
-	/*edge_t edges[] = { {3, 4}, {3, 6}, {3, 5}, {0, 4}, {0, 1}, {0, 6}, {0, 7},
-	  {0, 5}, {0, 2}, {4, 1}, {1, 6}, {1, 5}, {6, 7}, {7, 5}, {5, 2}, {3, 4} };*/
-
 	const edge_t *edges = &edge[0];
-
-	// for each of the 16 edges, define the associated edge weight. ws[i] is the weight for the edge
-	// that is described by edges[i].
-	//weight_type ws[] = { 0, 3, 1, 3, 1, 2, 6, 1, 8, 1, 1, 80, 2, 1, 1, 4 };
 	const weight_type *ws = &cap[0];
-
-	// construct the graph object. 8 is the number of vertices, which are numbered from 0
-	// through 7, and 16 is the number of edges.
 	undirected_graph g(edges, edges + edge.size(), ws, n_vert, edge.size());
-
-	// define a property map, `parities`, that will store a boolean value for each vertex.
-	// Vertices that have the same parity after `stoer_wagner_min_cut` runs are on the same side of the min-cut.
 	BOOST_AUTO(parities, boost::make_one_bit_color_map(num_vertices(g), get(boost::vertex_index, g)));
 
-	// run the Stoer-Wagner algorithm to obtain the min-cut weight. `parities` is also filled in.
 	int w = boost::stoer_wagner_min_cut(g, get(boost::edge_weight, g), boost::parity_map(parities));
 
 	cout << "The min-cut weight of G is " << w << ".\n" << endl;
-	//assert(w == n_vert);
 
 	//two parts
 	part1.clear();
@@ -316,15 +248,11 @@ void MinCut(int n_vert, const vector<std::pair<int, int>> &edge, const vector<do
 	for (i = 0; i < num_vertices(g); ++i) {
 		if (get(parities, i))
 			part1.push_back(i);
-			//cout << i << endl;
 	}
-	//cout << endl;
 
 	cout << "The other set of vertices consists of:" << endl;
 	for (i = 0; i < num_vertices(g); ++i) {
 		if (!get(parities, i))
 			part2.push_back(i);
-			//cout << i << endl;
 	}
-	//cout << endl;
 }

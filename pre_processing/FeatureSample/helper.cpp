@@ -112,10 +112,7 @@ void compute_vert_mean_curvature(const std::vector<TinyVector<double, 3>>& pos, 
 	MatrixXi F;
 	curvature.clear();
 	curvature.resize(pos.size(), 0.0);
-	//igl::readOFF(TUTORIAL_SHARED_PATH "/bumpy.off",V,F);
-	//igl::readOFF("E:\\code\\PaperCode\\VolumeMeshProcessing\\x64\\Release\\AllModels\\fandisk\\fandisk.off", V, F);
-	
-	
+
 	//remove dup verts
 	std::vector<size_t> o2n(pos.size(), (size_t)-1), n2o;
 	size_t count = 0;
@@ -137,9 +134,6 @@ void compute_vert_mean_curvature(const std::vector<TinyVector<double, 3>>& pos, 
 	std::vector<std::vector<int>> vF(faces.size(), std::vector<int>(3));
 	for (size_t i = 0; i < n2o.size(); i++)
 	{
-		//V(3 *i, 1) = pos[i][0];
-		/*V(3 * i + 1) = pos[i][1];
-		V(3 * i + 2) = pos[i][2];*/
 		for (size_t j = 0; j < 3; j++)
 		{
 			vV[i][j] = pos[n2o[i]][j];
@@ -147,9 +141,6 @@ void compute_vert_mean_curvature(const std::vector<TinyVector<double, 3>>& pos, 
 	}
 	for (size_t i = 0; i < faces.size(); i++)
 	{
-		/*F(3 * i) = faces[i][0];
-		F(3 * i + 1) = faces[i][1];
-		F(3 * i + 2) = faces[i][2];*/
 		for (size_t j = 0; j < 3; j++)
 		{
 			vF[i][j] = o2n[faces[i][j]];
@@ -160,7 +151,6 @@ void compute_vert_mean_curvature(const std::vector<TinyVector<double, 3>>& pos, 
 	std::cout << "V size: " << V.size() << std::endl;
 	std::cout << "F size: " << F.size() << std::endl;
 	std::cout << "pos & faces size: " << pos.size() << " " << faces.size() << std::endl;
-
 
 	SparseMatrix<double> M, Minv;
 	MatrixXd HN;
@@ -198,7 +188,6 @@ void compute_shortest_dist_AABB(const Eigen::MatrixXd& input_pts, const Eigen::M
 	dist.clear();
 	faceid.clear();
 	Eigen::MatrixXd all_queries(queries.size(), 3);
-	//for (size_t i = 0; i < queries.size(); i++)
 	for (size_t i = 0; i < queries.size(); i++)
 	{
 		for (size_t j = 0; j < 3; j++)
@@ -210,9 +199,7 @@ void compute_shortest_dist_AABB(const Eigen::MatrixXd& input_pts, const Eigen::M
 	Eigen::VectorXi I;
 	Eigen::MatrixXd C;
 	Eigen::VectorXd sqrD;
-	//tree.squared_distance(input_pts, input_faces, all_queries, sqrD, I, C);
 	igl::point_mesh_squared_distance(all_queries, input_pts, input_faces, sqrD, I, C);
-	//igl::point_mesh_squared_distance(input_pts, input_pts, input_faces, sqrD, I, C);
 	for (size_t i = 0; i < queries.size(); i++)
 	{
 		res.push_back(vec3d(C(i, 0), C(i, 1), C(i, 2)));
@@ -298,12 +285,6 @@ bool get_tree_from_convex_graph(const std::vector<std::set<size_t>> &graph , con
 				}
 			}
 			TreeNode<size_t>* child = new TreeNode<size_t>;
-			//if (layer == 10)
-			//{
-			//	std::cout << "Layers over 10!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
-			//	//exit(EXIT_FAILURE);
-			//	return false;
-			//}
 			bool tmp_flag = get_tree_from_convex_graph(subgraph, flag_fpconvex, !flag_convex_bool, child, layer + 1, invalid_cluster);
 			if (!tmp_flag)
 			{
@@ -341,17 +322,13 @@ void get_mesh_vert_faces(Mesh3d& mesh, std::vector<std::array<double, 3>>& pos, 
 		std::vector<size_t> oneface;
 		do
 		{
-			//tri_verts[i][local_id++] = edge->pair->vert->id;
 			oneface.push_back(edge->pair->vert->id);
 			edge = edge->next;
 		} while (edge != begin_edge);
-		//mesh.get_faces_list()->at(fid)->normal;
 		faces.push_back(oneface);
 	}
-	//std::vector<TinyVector<double, 3>> vert_pos;
 	for (size_t i = 0; i < mesh.get_vertices_list()->size(); i++)
 	{
-		//vert_pos.push_back(mesh.get_vertices_list()->at(i)->pos);
 		vec3d one_pt = mesh.get_vertices_list()->at(i)->pos;
 		pos.push_back(std::array<double, 3>({ one_pt[0], one_pt[1], one_pt[2] }));
 	}
@@ -394,7 +371,6 @@ void get_all_tri_area(Mesh3d& mesh, std::vector<double>& tri_area)
 	tri_area.clear();
 	tri_area.resize(mesh.get_num_of_faces(), 0.0);
 	std::vector<TinyVector<size_t, 3>> tri_verts(mesh.get_faces_list()->size());
-	//std::vector<TinyVector<double, 3>> tri_normals;
 	//get tri list
 	for (size_t i = 0; i < mesh.get_faces_list()->size(); i++)
 	{
@@ -406,8 +382,6 @@ void get_all_tri_area(Mesh3d& mesh, std::vector<double>& tri_area)
 			tri_verts[i][local_id++] = edge->pair->vert->id;
 			edge = edge->next;
 		} while (edge != begin_edge);
-		//mesh.get_faces_list()->at(fid)->normal;
-		//tri_normals.push_back(mesh.get_faces_list()->at(i)->normal);
 	}
 	std::vector<TinyVector<double, 3>> vert_pos;
 	for (size_t i = 0; i < mesh.get_vertices_list()->size(); i++)
@@ -417,8 +391,6 @@ void get_all_tri_area(Mesh3d& mesh, std::vector<double>& tri_area)
 
 	for (size_t i = 0; i < tri_area.size(); i++)
 	{
-		//tri_area[i] = std::abs(compute_tri_area<double>(tri_verts[tri_faces[i][0]], tri_verts[tri_faces[i][1]], tri_verts[tri_faces[i][2]]));
-		//total_tri_area += tri_area[i];
 		tri_area[i] = std::abs(compute_tri_area<double>(vert_pos[tri_verts[i][0]], vert_pos[tri_verts[i][1]], vert_pos[tri_verts[i][2]]));
 	}
 	
@@ -512,9 +484,6 @@ void repair_tree_features(Mesh3d& m, const std::vector<int>& face_color, const s
 	Mesh3d sub_mesh;
 	sub_mesh.load_mesh(all_pts, invalid_faces);
 	sub_mesh.write_obj("invalid.obj");
-
-	//to change: ungrouped features
-	//step1: load feature, step2: select convex-concavefeature, step3: add shorted path to other corner points or boundary
 	
 	std::vector<std::vector<int>> feature_v2he(sub_mesh.get_num_of_vertices()); //id of hes ematating from each vertex
 	
@@ -547,47 +516,21 @@ void repair_tree_features(Mesh3d& m, const std::vector<int>& face_color, const s
 				edge = edge->pair->next;
 			} while (edge != begin_edge);
 		}
-		//assert(flag_found == true);
 		if (flag_found == true)
 		{
 			ungrouped_features_new.push_back(ungrouped_features[i]);
 		}
 	}
 
-	//for debugging: visualize flag_he_feature
-	//auto flag_he_feature_debug = flag_he_feature;
-	//std::vector<std::pair<int, int>> debug_feas;
-	//std::ofstream ofs("debug.fea");
-	//for (size_t i = 0; i < flag_he_feature.size(); i++)
-	//{
-	//	if (flag_he_feature_debug[i])
-	//	{
-	//		flag_he_feature_debug[sub_mesh.get_edge(i)->pair->id] = false;
-	//		//ofs << sub_mesh.get_edge(i)->vert->id << " " << sub_mesh.get_edge(i)->pair->vert->id << std::endl;
-	//		debug_feas.push_back(std::pair<int, int>(sub_mesh.get_edge(i)->vert->id, sub_mesh.get_edge(i)->pair->vert->id));
-	//	}
-	//}
-
-	//ofs << debug_feas.size() << std::endl;
-	//for (auto& pp : debug_feas)
-	//{
-	//	ofs << pp.first << " " << pp.second << std::endl;
-	//}
-
-	//ofs.close();
-
-	//int max_v_degree = 0;
+	
 	std::vector<int> feature_vtype(sub_mesh.get_num_of_vertices(), 0); //0: normal case, 1: corner, 2: turn vertex
 	std::vector<int> feature_vcolor(sub_mesh.get_num_of_vertices(), false);
 
 	for (size_t i = 0; i < feature_v2he.size(); i++)
 	{
-		/*if (max_v_degree < feature_v2he[i].size())
-			max_v_degree = feature_v2he[i].size();*/
 		if (feature_v2he[i].size() == 1)
 		{
 			feature_vtype[i] = 1;
-			//feature_vcolor[i] = true;
 		}
 		else if (feature_v2he[i].size() >= 3)
 		{
@@ -605,7 +548,6 @@ void repair_tree_features(Mesh3d& m, const std::vector<int>& face_color, const s
 			if (convex_count > 0 && concave_count > 0)
 			{
 				feature_vtype[i] = 2; //turn
-				//std::cout << "turn vertex id: " << i << std::endl;
 			}
 			else
 			{
@@ -620,14 +562,6 @@ void repair_tree_features(Mesh3d& m, const std::vector<int>& face_color, const s
 		if (feature_vtype[i] > 0)
 			ep_cand.insert(i);
 	}
-
-	/*for (size_t i = 0; i < sub_mesh.get_num_of_vertices(); i++)
-	{
-		if (sub_mesh.is_on_boundary(sub_mesh.get_vertex(i)))
-		{
-			ep_cand.insert(i);
-		}
-	}*/
 	
 	for (size_t i = 0; i < sub_mesh.get_num_of_edges(); i++)
 	{
@@ -639,7 +573,6 @@ void repair_tree_features(Mesh3d& m, const std::vector<int>& face_color, const s
 	}
 
 	//add features for each turn vertex
-	//std::vector<bool> flag_he_feature_add = flag_he_feature;
 	std::vector<bool> flag_he_feature_add(flag_he_feature.size(), false);
 
 	for (size_t i = 0; i < feature_v2he.size(); i++)
@@ -709,7 +642,6 @@ void repair_tree_features(Mesh3d& m, const std::vector<int>& face_color, const s
 			flag_he_feature_add[sub_mesh.get_edge(i)->pair->id] = false;
 			int v1 = sub_mesh.get_edge(i)->vert->id, v2 = sub_mesh.get_edge(i)->pair->vert->id;
 			ungrouped_features_set.insert(std::pair<int, int>(std::min(v1, v2), std::max(v1, v2)));
-			//ungrouped_features.push_back(std::pair<int, int>(sub_mesh.get_edge(i)->vert->id, sub_mesh.get_edge(i)->pair->vert->id));
 		}
 	}
 
@@ -811,7 +743,6 @@ void repair_tree_features_maxflow(Mesh3d& m, const std::vector<int>& face_color,
 				HE_edge<double>* begin_edge = sub_mesh.get_vertices_list()->at(id0)->edge;
 				HE_edge<double>* edge = sub_mesh.get_vertices_list()->at(id0)->edge;
 				bool flag_found = false;
-				//if (edge != NULL && !sub_mesh.is_on_boundary(edge)) //not boundary
 				if (edge != NULL)
 				{
 					do
@@ -820,7 +751,6 @@ void repair_tree_features_maxflow(Mesh3d& m, const std::vector<int>& face_color,
 						{
 							flag_he_feature[edge->id] = true;
 							flag_he_feature[edge->pair->id] = true;
-							//int edge_type = get_mesh_edge_type(sub_mesh, edge->id);
 							int edge_type = edgepair2type[ungrouped_features[i]];
 							flag_he_type[edge->id] = edge_type;
 							flag_he_type[edge->pair->id] = edge_type;
@@ -903,9 +833,6 @@ void repair_tree_features_maxflow(Mesh3d& m, const std::vector<int>& face_color,
 			if (!flag_mesh_valid)
 			{
 				std::cout << "input mesh for patch " << cid << " is invalid" << std::endl;
-				/*Mesh3d new_mesh;
-				new_mesh.load_mesh(all_pts, cur_faces);
-				std::swap(sub_mesh, new_mesh);*/
 
 				sub_mesh.load_mesh(all_pts, cur_faces);
 				if (flag_debug)
@@ -920,13 +847,10 @@ void repair_tree_features_maxflow(Mesh3d& m, const std::vector<int>& face_color,
 				{
 					int id0 = ungrouped_features[i].first;
 					int id1 = ungrouped_features[i].second;
-					//feature_degree_v[id0]++;
-					//feature_degree_v[id1]++;
 
 					HE_edge<double>* begin_edge = sub_mesh.get_vertices_list()->at(id0)->edge;
 					HE_edge<double>* edge = sub_mesh.get_vertices_list()->at(id0)->edge;
 					bool flag_found = false;
-					//if (edge != NULL && !sub_mesh.is_on_boundary(edge)) //not boundary
 					if (edge != NULL)
 					{
 						do
@@ -1079,7 +1003,6 @@ void repair_tree_features_maxflow(Mesh3d& m, const std::vector<int>& face_color,
 	}
 	else
 	{
-	//for (auto cid : invalid_colors)
 	if (true)
 	{
 		
@@ -1107,7 +1030,6 @@ void repair_tree_features_maxflow(Mesh3d& m, const std::vector<int>& face_color,
 			HE_edge<double>* edge = sub_mesh.get_vertices_list()->at(id0)->edge;
 			bool flag_found = false;
 			if (edge != NULL && !sub_mesh.is_on_boundary(edge)) //not boundary
-			//if (edge != NULL)
 			{
 				do
 				{
@@ -1193,10 +1115,8 @@ void repair_tree_features_maxflow(Mesh3d& m, const std::vector<int>& face_color,
 
 		if (!flag_mesh_valid)
 		{
-			//std::cout << "input mesh for patch " << cid << " is invalid" << std::endl;
 			sub_mesh.load_mesh(all_pts, cur_faces);
 			sub_mesh.write_obj("invalidpatch_repair.obj");
-			//submesh might need to be adjusted
 			std::vector<bool> flag_he_feature(sub_mesh.get_num_of_edges(), false);
 			std::vector<int> flag_he_type(sub_mesh.get_num_of_edges(), 0);
 
@@ -1208,8 +1128,6 @@ void repair_tree_features_maxflow(Mesh3d& m, const std::vector<int>& face_color,
 			{
 				int id0 = ungrouped_features[i].first;
 				int id1 = ungrouped_features[i].second;
-				//feature_degree_v[id0]++;
-				//feature_degree_v[id1]++;
 
 				HE_edge<double>* begin_edge = sub_mesh.get_vertices_list()->at(id0)->edge;
 				HE_edge<double>* edge = sub_mesh.get_vertices_list()->at(id0)->edge;
@@ -1347,8 +1265,6 @@ void repair_tree_features_maxflow(Mesh3d& m, const std::vector<int>& face_color,
 
 	if (!flipped_edges.empty())
 	{
-		//update all faces
-		//for (auto& pp : flipped_edges)
 		for (size_t i = 0; i < flipped_edges.size(); i++)
 		{
 			auto pp = flipped_edges[i];
@@ -1465,7 +1381,6 @@ bool sample_pts_from_mesh(const std::vector<TinyVector<double, 3>>& tri_verts, c
 	std::random_device rd;
 	std::mt19937 e2(rd());
 	std::uniform_real_distribution<double> unif_dist(0, 1);
-	//std::normal_distribution<double> normal_dist(0, sigma);
 	std::uniform_real_distribution<double> normal_dist(-sigma, sigma);
 	std::uniform_real_distribution<double> angle_unif_dist(-sigma_n, sigma_n);
 
@@ -1493,8 +1408,6 @@ bool sample_pts_from_mesh(const std::vector<TinyVector<double, 3>>& tri_verts, c
 		fid = std::max(0, fid - 1);
 		fid = std::min(fid, (int)tri_faces.size() - 1);
 		//sample
-		//int id0 = ungrouped_features[fid].first;
-		//int id1 = ungrouped_features[fid].second;
 		double s = unif_dist(e2);
 		double t = unif_dist(e2);
 		if (s + t > 1)
@@ -1503,22 +1416,12 @@ bool sample_pts_from_mesh(const std::vector<TinyVector<double, 3>>& tri_verts, c
 			t = 1 - t;
 		}
 		TinyVector<double, 3> facenormal = tri_normals[fid];
-		/*if (result.count("s"))
-			sample_pts.push_back((1.0 - s - t) * vert_pos[tri_verts[fid][0]] + s * vert_pos[tri_verts[fid][1]] + t * vert_pos[tri_verts[fid][2]] + facenormal * normal_dist(e2));
-		else*/
 		if (flag_pos_noise)
 		{
 			output_pts.push_back((1.0 - s - t) * tri_verts[tri_faces[fid][0]] + s * tri_verts[tri_faces[fid][1]] + t * tri_verts[tri_faces[fid][2]] + facenormal * normal_dist(e2));
 		}
 		else
 			output_pts.push_back((1.0 - s - t) * tri_verts[tri_faces[fid][0]] + s * tri_verts[tri_faces[fid][1]] + t * tri_verts[tri_faces[fid][2]]);
-//			sample_pts.push_back((1.0 - s - t) * vert_pos[tri_verts[fid][0]] + s * vert_pos[tri_verts[fid][1]] + t * vert_pos[tri_verts[fid][2]]);
-		//sample_pt_normals.push_back(facenormal);
-		/*if (result.count("sn"))
-		{
-			sample_pt_normals.push_back(perturb_normal(facenormal, angle_unif_dist(e2), angle_unif_dist(e2)));
-		}
-		else*/
 		if (flag_normal_noise)
 		{
 			output_normals.push_back(perturb_normal(facenormal, angle_unif_dist(e2), angle_unif_dist(e2)));
@@ -1529,10 +1432,6 @@ bool sample_pts_from_mesh(const std::vector<TinyVector<double, 3>>& tri_verts, c
 			output_normals.push_back(facenormal);
 
 		}
-		//sample mask to be added
-		//assert(face_color[fid] <= n_color);
-		//sample_mask[n_feature_sample + i] = face_color[fid];
-		//sample_mask.push_back(face_color[fid]);
 		output_masks.push_back(tri_face_masks[fid]);
 	}
 
@@ -1560,8 +1459,6 @@ void sort_grouped_features(Mesh3d* m, std::vector<std::vector<int>>& grouped_fea
 					std::vector<int> hes, vs;
 					hes.push_back(heid);
 					vs.push_back(vid[1 - k]);
-					/*v2hes[vid[k]] = std::vector<int>(heid);
-					v2vs[vid[k]] = std::vector<int>(vid[1 - k]);*/
 					v2hes[vid[k]] = hes;
 					v2vs[vid[k]] = vs;
 				}
@@ -1702,8 +1599,6 @@ int cluster_mesh_faces(Mesh3d* m, const std::vector<bool>& he_feature_flag, std:
 				face2cluster[fid1] = color1;
 				m_queue.push(face_cluster(fid1, face_centers[fid1], face_centers[fid1]));
 				energy[fid1] = 0;
-				/*energy[fid1] = 1 - std::abs(m->get_faces_list()->at(fid1)->normal.Dot(m->get_faces_list()->at(fid2)->normal));
-				m_queue.push(face_cluster(fid1, face_centers[fid1], face_centers[fid1], energy[fid1]));*/
 				flag_face_unchangable[fid1] = true;
 			}
 			if (face2cluster[fid2] == -1)
@@ -1711,8 +1606,6 @@ int cluster_mesh_faces(Mesh3d* m, const std::vector<bool>& he_feature_flag, std:
 				face2cluster[fid2] = color2;
 				m_queue.push(face_cluster(fid2, face_centers[fid2], face_centers[fid2]));
 				energy[fid2] = 0;
-				//energy[fid2] = energy[fid1];
-				//m_queue.push(face_cluster(fid2, face_centers[fid2], face_centers[fid2], energy[fid2]));
 
 				flag_face_unchangable[fid2] = true;
 			}
@@ -1738,13 +1631,11 @@ int cluster_mesh_faces(Mesh3d* m, const std::vector<bool>& he_feature_flag, std:
 			if (!flag_face_unchangable[otherface])
 			{
 				double tmp_energy = (face_centers[otherface] - fc.ori_face_center).Length();
-				//double tmp_energy = 1.0 - std::abs(edge->face->normal.Dot(edge->pair->face->normal));
 				if (face2cluster[otherface] == -1)
 				{
 					face2cluster[otherface] = face2cluster[fc.fid];
 					m_queue.push(face_cluster(otherface, fc.ori_face_center, face_centers[otherface]));
 					energy[otherface] = tmp_energy;
-					//m_queue.push(face_cluster(otherface, fc.ori_face_center, face_centers[otherface], tmp_energy));
 				}
 				else
 				{
@@ -1752,11 +1643,8 @@ int cluster_mesh_faces(Mesh3d* m, const std::vector<bool>& he_feature_flag, std:
 					if (tmp_energy < energy[otherface])
 					{
 						face2cluster[otherface] = face2cluster[fc.fid];
-						//m_queue.push(face_cluster(otherface, tmp_energy));
 						m_queue.push(face_cluster(otherface, fc.ori_face_center, face_centers[otherface]));
 						energy[otherface] = tmp_energy;
-						//m_queue.push(face_cluster(otherface, fc.ori_face_center, face_centers[otherface], tmp_energy));
-
 					}
 				}
 			}

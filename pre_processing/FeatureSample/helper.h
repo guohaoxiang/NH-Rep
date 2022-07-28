@@ -7,12 +7,6 @@
 
 #define th_smooth_cos_value 0.939692
 
-////double th_smooth_cos_value = 0.866025; //sqrt(3)/2, flat angle is treated as smooth feature
-//
-//double th_smooth_cos_value = 0.939692; //cos(20)
-//
-////double th_smooth_cos_value = 0.5; //cos(60)
-
 void greedy_graph_coloring(const size_t num_vertices, const std::vector<std::set<size_t>>& edges, std::vector<std::vector<size_t>>& colored_vertices);
 
 void get_graph_component(const std::vector<std::set<size_t>>& edges, std::vector<std::set<size_t>>& components);

@@ -43,9 +43,7 @@ bool load_feature_file(const char* filename, std::vector<std::pair<int, int>>& u
 		ungrouped_feature.push_back(tmp_pair);
 	}
 
-	//not consider grouped feature
 	return true;
-
 }
 
 void save_feature_file(const char* filename, const std::vector<std::pair<int, int>>& ungrouped_feature)
@@ -76,7 +74,6 @@ int check_mesh_edge_convex(Mesh3d* m, HE_edge<double>* he)
 	//return 0: smooth, 1: convex, 2: concave
 	int hetri_vertidsum = 0, hepairtri_vertidsum = 0;
 
-	//add 20220328, for boundary edge, return 0
 	if (m->is_on_boundary(he))
 	{
 		return 0;
@@ -121,8 +118,6 @@ int check_mesh_edge_convex(Mesh3d* m, HE_edge<double>* he)
 
 int main(int argc, char** argv)
 {
-	
-	//select model firstly: 0 for normalization and 1 for sampling
 	try
 	{
 		cxxopts::Options options("FeaturedModelPointSample", "Point Sampling program for featured CAD models (author: Haoxiang Guo, Email: guohaoxiangxiang@gmail.com)");
@@ -147,7 +142,7 @@ int main(int argc, char** argv)
 			("sn", "sigma for noisy points normal in degrees, default 0.0", cxxopts::value<double>())
 			("csg", "whether generating csg tree for model, default: 0", cxxopts::value<int>())
 			("convex", "whether the first layer is convex, default: 0", cxxopts::value<int>())
-			("r,repair", "whether the turn vertex are repaired, default: 1", cxxopts::value<int>())
+			("r,repairturn", "whether the turn vertex are repaired, default: 1", cxxopts::value<int>())
 			("verbose", "verbose setting, default: 0", cxxopts::value<int>())
 			("strict", "treat all edges as either strictly convex or concave")
 			("repairtree", "repair tree feature")
@@ -202,7 +197,7 @@ int main(int argc, char** argv)
 		if (processing_mode == 0)
 		{
 			//normalization part begin
-			//[-0.9, 9]^3
+			//[-0.9, 0.9]^3
 			std::vector<TinyVector<double, 3>> pts_nl(mesh.get_vertices_list()->size());
 			double max_range = mesh.xmax - mesh.xmin;
 			max_range = max_range < (mesh.ymax - mesh.ymin) ? (mesh.ymax - mesh.ymin) : max_range;
@@ -265,18 +260,6 @@ int main(int argc, char** argv)
 				flag_csg = result["csg"].as<int>();
 			
 			bool flag_skip_hanging_features = false; //not skipping hanging features
-			
-
-			//for debugging
-			//mesh.write_obj("tmp.obj");
-
-			//at least sample points with the same shape as face
-			/*if (n_nonfeature_sample < mesh.get_num_of_faces())
-			{
-				n_nonfeature_sample = mesh.get_num_of_faces();
-			}*/
-
-			//std::vector<int> sample_mask(n_feature_sample + n_nonfeature_sample, 0);
 			std::vector<int> sample_mask;
 			std::vector<std::pair<int, int>> ungrouped_features;
 			load_feature_file(inputfeaturefile.c_str(), ungrouped_features);
@@ -286,17 +269,6 @@ int main(int argc, char** argv)
 			{
 				auto& inputpcfile = result["p"].as<std::string>();
 				load_xyz_file(inputpcfile.c_str(), sample_pts, sample_pt_normals);
-				
-
-				//for testing
-				/*std::ofstream outputsamples("test.xyz");
-
-				for (size_t i = 0; i < sample_pts.size(); i++)
-				{
-					outputsamples << sample_pts[i] << " " << sample_pt_normals[i] << std::endl;
-				}
-
-				outputsamples.close();*/
 
 				sample_pts_tris.resize(sample_pts.size(), 0);
 				if (result.count("pf"))
@@ -316,9 +288,7 @@ int main(int argc, char** argv)
 					//search id by aabb
 					std::vector<std::array<double, 3>> tri_verts;
 					std::vector<std::vector<size_t>> tri_faces;
-					//void get_mesh_vert_faces(Mesh3d& m, std::vector<std::array<double, 3>>& pos, std::vector<std::vector<size_t>>& faces);
 					get_mesh_vert_faces(mesh, tri_verts, tri_faces);
-					
 					Eigen::MatrixXd input_pts(tri_verts.size(), 3);
 					Eigen::MatrixXi input_faces(tri_faces.size(), 3);
 					for (size_t i = 0; i < tri_verts.size(); i++)
@@ -342,7 +312,6 @@ int main(int argc, char** argv)
 					std::vector<double> dist;
 					compute_shortest_dist_AABB(input_pts, input_faces, sample_pts, closest, dist, sample_pts_tris);
 
-
 				}
 				
 			}
@@ -357,7 +326,6 @@ int main(int argc, char** argv)
 			}
 
 			//feature check: no hanging feature
-			//std::vector<size_t> feature_degree_v(mesh.get_num_of_vertices(), 0);
 			std::vector<std::vector<int>> feature_v2he(mesh.get_num_of_vertices()); //id of hes ematating from each vertex
 
 			std::vector<std::pair<int, int>> ungrouped_features_new;
@@ -365,8 +333,6 @@ int main(int argc, char** argv)
 			{
 				int id0 = ungrouped_features[i].first;
 				int id1 = ungrouped_features[i].second;
-				//feature_degree_v[id0]++;
-				//feature_degree_v[id1]++;
 
 				HE_edge<double>* begin_edge = mesh.get_vertices_list()->at(id0)->edge;
 				HE_edge<double>* edge = mesh.get_vertices_list()->at(id0)->edge;
@@ -392,51 +358,17 @@ int main(int argc, char** argv)
 			if (ungrouped_features.size() != ungrouped_features_new.size())
 				ungrouped_features = ungrouped_features_new;
 
-			////for debugging, save all smooth feature
-			//std::vector<std::pair<int, int>> smooth_fea;
-			//for (size_t i = 0; i < mesh.get_num_of_vertices(); i++)
-			//{
-			//	
-			//	if (feature_v2he[i].size() == 2)
-			//	{
-			//		//check edge convex status
-			//		int flag_convex_edge0 = check_mesh_edge_convex(&mesh, mesh.get_edges_list()->at(feature_v2he[i][0]));
-			//		int flag_convex_edge1 = check_mesh_edge_convex(&mesh, mesh.get_edges_list()->at(feature_v2he[i][1]));
-			//		if (flag_convex_edge0 == 0)
-			//		{
-			//			smooth_fea.push_back(std::pair<int, int>(mesh.get_edges_list()->at(feature_v2he[i][0])->vert->id, mesh.get_edges_list()->at(feature_v2he[i][0])->pair->vert->id));
-			//		}
-
-			//		if (flag_convex_edge1 == 0)
-			//		{
-			//			smooth_fea.push_back(std::pair<int, int>(mesh.get_edges_list()->at(feature_v2he[i][1])->vert->id, mesh.get_edges_list()->at(feature_v2he[i][1])->pair->vert->id));
-			//		}
-			//	}
-			//}
-			//std::ofstream  ofs("smooth.fea");
-			//ofs << smooth_fea.size() << std::endl;
-			//for (size_t i = 0; i < smooth_fea.size(); i++)
-			//{
-			//	ofs << smooth_fea[i].first << " " << smooth_fea[i].second << std::endl;
-			//}
-			//
-			//ofs.close();
-			
-
 			std::vector<size_t> turn_verts, hanging_verts;
 
 			for (size_t i = 0; i < mesh.get_num_of_vertices(); i++)
 			{
-				//assert(feature_degree_v[i] == feature_v2he[i].size());
 				if (feature_v2he[i].size() == 1)
 				{
 					std::cout << "input file: " << inputfile << std::endl;
 					std::cout << "hanging vertex exists: " << i << std::endl;
 					std::ofstream ofs(inputfile + "hanging");
 					ofs.close();
-					//turn_verts.push_back(i);
 					hanging_verts.push_back(i);
-					//return 0;
 				}
 				else if (feature_v2he[i].size() == 2)
 				{
@@ -460,18 +392,10 @@ int main(int argc, char** argv)
 				return 0;
 			}
 
-			/*if (!flag_repair_turn_features && !(turn_verts.size() + hanging_verts.size() == 0))
-			{
-				return 0;
-			}*/
-
 			//feature parts first
 			std::random_device rd;
 			std::mt19937 e2(rd());
 			std::uniform_real_distribution<double> unif_dist(0, 1);
-			//std::normal_distribution<double> normal_dist(0, sigma);
-			/*std::uniform_real_distribution<double> normal_dist(-sigma, sigma);
-			std::uniform_real_distribution<double> angle_unif_dist(-sigma_n, sigma_n);*/
 
 			std::vector<double> feature_length(ungrouped_features.size(), 0.0);
 			double total_feature_length = 0.0;
@@ -521,7 +445,6 @@ int main(int argc, char** argv)
 					tri_verts[i][local_id++] = edge->pair->vert->id;
 					edge = edge->next;
 				} while (edge != begin_edge);
-				//mesh.get_faces_list()->at(fid)->normal;
 				tri_normals.push_back(mesh.get_faces_list()->at(i)->normal);
 			}
 			std::vector<TinyVector<double, 3>> vert_pos;
@@ -551,18 +474,12 @@ int main(int argc, char** argv)
 				he_feature_flag[edge->pair->id] = true;
 			}
 			
-			//repairing conducted here, he_feature_flag, ungrouped_features should be updated
-			
 			std::vector<std::vector<int>> grouped_features; //grouped features: only one he of a pair is stored
 			std::vector<int> he2gid;
 			get_grouped_edges(mesh, he_feature_flag, feature_v2he, grouped_features, he2gid);
 			if (flag_repair_turn_features && !turn_verts.empty())
-			//if (true)
 			{
-				//group features first
-				
-				std::cout << "feature group size: " << grouped_features.size() << std::endl;
-				//repair features
+				//repair turning-point features
 				std::vector<bool> flag_feature_points(mesh.get_vertices_list()->size(), false);
 				for (size_t i = 0; i < he_feature_flag.size(); i++)
 				{
@@ -589,18 +506,11 @@ int main(int argc, char** argv)
 					std::vector<double> dist;
 					dijkstra_mesh(&mesh, cur_vert, prev_map, dist);
 					
-					/*size_t nnvid = 0;
-					double shortest_dist = DBL_MAX;*/
 					std::set<std::pair<double, size_t>> dist_id_set;
 					for (size_t j = 0; j < flag_feature_points_tmp.size(); j++)
 					{
 						if (flag_feature_points_tmp[j])
 						{
-							/*if (dist[j] < shortest_dist)
-							{
-								shortest_dist = dist[j];
-								nnvid = j;
-							}*/
 							dist_id_set.insert(std::pair<double, size_t>(dist[j], j));
 						}
 					}
@@ -614,7 +524,6 @@ int main(int argc, char** argv)
 						while (nnvid != cur_vert)
 						{
 							size_t prev_vert = prev_map[nnvid];
-							//ungrouped_features.push_back(std::pair<int, int>((int)nnvid, (int)prev_vert));
 							HE_edge<double>* begin_edge = mesh.get_vertices_list()->at(nnvid)->edge;
 							HE_edge<double>* edge = begin_edge;
 							do
@@ -626,8 +535,6 @@ int main(int argc, char** argv)
 								edge = edge->pair->next;
 							} while (edge != begin_edge);
 							assert(edge->vert->id == prev_vert);
-							/*he_feature_flag[edge->id] = true;
-							he_feature_flag[edge->pair->id] = true;*/
 							if (he_feature_flag[edge->id])
 							{
 								flag_usable = false;
@@ -662,25 +569,6 @@ int main(int argc, char** argv)
 			std::vector<std::vector<int>> face_clusters;
 			std::vector<std::pair<int, int>> feature_twoface_colors;//color of faces on two sides of the feature, *.first < *.second
 
-
-			//new version
-			//int cluster_start_id = 1;
-			////set face_color_init by propagation
-			//get_grouped_edges(mesh, he_feature_flag, feature_v2he, grouped_features, he2gid);
-			//int cluster_id = cluster_mesh_faces(&mesh, he_feature_flag, grouped_features, cluster_start_id, face_color_init, feature_twoface_colors);
-			//std::cout << "cluster number before merging: " << cluster_id - 1 << std::endl;
-
-			////get face_clusters
-			////get_cluster_from_coloring(face_color_init, cluster_start_id, face_clusters);
-
-			////merging: udpate face_color_init, cluster_id, face_clusters
-			//cluster_id = merge_clusters(&mesh, he_feature_flag, cluster_start_id, cluster_id - 1,feature_twoface_colors, face_color_init);
-			//std::cout << "cluster number after merging: " << cluster_id - 1 << std::endl;
-
-			//new version end
-
-#if 1
-			//traditional version
 			int start_id = 0;
 			int cluster_id = 1;
 			while (start_id != -1)
@@ -726,13 +614,10 @@ int main(int argc, char** argv)
 				}
 				cluster_id++;
 			}
-#endif 
 			std::vector<int> face_color = face_color_init; //starting from 1
-			
 			//check face area
 			std::vector<double> tri_areas;
 			get_all_tri_area(mesh, tri_areas);
-			//std::cout << "min tri area: " << *std::min_element(tri_areas.begin(), tri_areas.end()) << std::endl;
 			std::vector<double> patch_areas(cluster_id, 0.0);
 			for (size_t i = 0; i < face_color.size(); i++)
 			{
@@ -745,7 +630,6 @@ int main(int argc, char** argv)
 				std::cout << "too small patch area : " << *std::min_element(patch_areas.begin() + 1, patch_areas.end()) << std::endl;
 				std::ofstream ofs(output_prefix + "smallpatch");
 				ofs.close();
-				//return 1;
 			}
 
 			int n_color = cluster_id;
@@ -813,13 +697,11 @@ int main(int argc, char** argv)
 				std::vector<std::set<size_t>> connectivity_v(cluster_id - 1); //connectivity based on vertices
 				std::map<std::pair<size_t, size_t>, double> fp2product;
 				
-				//update 1203, construct csg tree by voting
-				//std::map<std::pair<size_t, size_t>, std::array<int, 3>> fp2count;
-				
+				//construct csg tree by voting				
 				std::map<std::pair<size_t, size_t>, int> flag_fpconvex; //update 1203, 0: smooth, 1: convex, 2:concave
 				//color - 1
 				
-				//update 0104, face pair convexity is determined by grouped edges
+				//face pair convexity is determined by grouped edges
 				std::vector<std::array<int, 3>> ge2count(grouped_features.size(), std::array<int, 3>{0, 0, 0});
 				std::map<std::pair<size_t, size_t>, std::set<int>> fp2ge; //face pair to grouped edges
 				for (size_t i = 0; i < he_feature_flag.size(); i++)
@@ -855,13 +737,6 @@ int main(int argc, char** argv)
 						}
 						
 						double tmp_cos = e1->face->normal.Dot(e2->face->normal);
-						//if (fp2count.find(tmp_pair) == fp2count.end())
-
-						
-						/*if (ge2count.find(tmp_pair) == ge2count.end())
-						{
-							fp2count[tmp_pair] = std::array<int, 3>({ 0, 0, 0 });
-						}*/
 
 						int gid = he2gid[i];
 						if (fp2ge.find(tmp_pair) == fp2ge.end())
@@ -875,12 +750,10 @@ int main(int argc, char** argv)
 							//convex
 							if (tmp_cos < th_smooth_cos_value)
 							{
-								//fp2count[tmp_pair][1]++;
 								ge2count[gid][1]++;
 							}
 							else
 							{
-								//fp2count[tmp_pair][0]++;
 								ge2count[gid][0]++;
 							}
 						}
@@ -912,23 +785,9 @@ int main(int argc, char** argv)
 						std::set<size_t> surounding_cs;
 						do
 						{
-							/*int next_id = ve_iter->vert->id;
-							if (next_id == id1)
-							{
-								te = ve_iter;
-								break;
-							}
-							ve_iter = ve_iter->pair->next;*/
 							surounding_cs.insert(face_color_init[ve_iter->face->id] -1);
 							ve_iter = ve_iter->pair->next;
 						} while (ve_iter != ve_begin);
-						//if (surounding_cs.size() != feature_v2he[i].size())
-						//{
-						//	//update 1201, no longer big deal, because the generix might exists
-						//	std::cout << "input file: " << inputfile << std::endl;
-						//	std::cout << "feature wrong near: " << i << std::endl;
-						//}
-						//assert(surounding_cs.size() == feature_v2he[i].size());
 						std::vector<size_t> surounding_cs_vector(surounding_cs.begin(), surounding_cs.end());
 						for (size_t it = 0; it < surounding_cs_vector.size() - 1; it++)
 						{
@@ -950,12 +809,10 @@ int main(int argc, char** argv)
 					{
 						if (p.second < 0.0)
 						{
-							//flag_fpconvex[p.first] = true;
 							flag_fpconvex[p.first] = 1;
 						}
 						else
 						{
-							//flag_fpconvex[p.first] = false;
 							flag_fpconvex[p.first] = 2;
 
 						}
@@ -963,22 +820,7 @@ int main(int argc, char** argv)
 				}
 				else
 				{
-					//not struct version
-					/*for (auto& p : fp2count)
-					{
-						int maxid = -1, max_num = -1;
-						for (size_t ii = 0; ii < 3; ii++)
-						{
-							if (p.second[ii] > max_num)
-							{
-								max_num = p.second[ii];
-								maxid = ii;
-							}
-						}
-						flag_fpconvex[p.first] = maxid;
-					}*/
-
-					//update 0104, get face pair connectivity by grouped edges
+					//get face pair connectivity by grouped edges
 					bool flag_valid_seg = true;
 					std::set<size_t> invalid_seg_patches;
 					std::vector<int> ge2convex(grouped_features.size(), 0);
@@ -996,8 +838,6 @@ int main(int argc, char** argv)
 						ge2convex[i] = maxid;
 					}
 					
-
-
 					for (auto& p : fp2ge)
 					{
 						std::set<int> cur_strict_convex_types;
@@ -1040,9 +880,7 @@ int main(int argc, char** argv)
 							ofs << pp.first << " " << pp.second << std::endl;
 						}
 						ofs.close();
-
 						mesh.write_obj((output_prefix + "_fixtree.obj").c_str());
-
 
 						return 1;
 					}
@@ -1071,7 +909,6 @@ int main(int argc, char** argv)
 					}
 				}
 				//print graph
-				
 
 				TreeNode<size_t> *tree = new TreeNode<size_t>;
 				;
@@ -1128,9 +965,7 @@ int main(int argc, char** argv)
 					//failure case
 					if (flag_repair_tree_features) //to check for all feature
 					{
-						//repair_tree_features(mesh, face_color, invalid_subgraph, ungrouped_features);
 						repair_tree_features_maxflow(mesh, face_color, invalid_subgraph, ungrouped_features);
-
 						ofs.open(output_prefix + "_fixtree.fea");
 						ofs << ungrouped_features.size() << std::endl;
 						for (auto& pp : ungrouped_features)
@@ -1145,15 +980,6 @@ int main(int argc, char** argv)
 					return 1;
 				}
 
-				//TreeNode<size_t>* tree_concave = new TreeNode<size_t>;
-				//get_tree_from_convex_graph(connectivity, flag_fpconvex, false, tree_concave);
-				////compare number of keys in the first layer
-				//if (tree_concave->keys.size() > tree->keys.size() && !flag_first_convex)
-				//{
-				//	tree = tree_concave;
-				//	flag_convex = false;
-				//}
-				
 				std::cout << "convex status: " << flag_convex << std::endl;
 				
 				if (flag_coloring)
@@ -1163,65 +989,6 @@ int main(int argc, char** argv)
 						max_patch_per_cluster = result["mp"].as<int>();
 					std::vector<size_t> cluster_color(connectivity_v.size(), -1);
 					n_color = tree_coloring<size_t>(tree, connectivity_v, cluster_color, 0, max_patch_per_cluster) + 1;
-					//only color the vertex of root
-					//std::vector<size_t> o2n(connectivity.size(), size_t(-1));
-					//std::vector<size_t> n2o;
-					//size_t ncount = 0;
-					//for (auto v : tree->keys)
-					//{
-					//	o2n[v] = ncount++;
-					//	n2o.push_back(v);
-					//}
-					//std::vector<std::set<size_t>> local_con(ncount);
-					//for (auto v : tree->keys)
-					//{
-					//	for (auto vn : connectivity_v[v])
-					//	{
-					//		if (std::find(tree->keys.begin(), tree->keys.end(), vn) != tree->keys.end())
-					//		{
-					//			//both are found in keys
-					//			local_con[o2n[v]].insert(o2n[vn]);
-					//		}
-					//	}
-					//}
-					//std::vector<std::vector<size_t>> colored_vertices;
-					//greedy_graph_coloring(ncount, local_con, colored_vertices);
-					////update colored_vertices
-					//std::vector<size_t> cluster_color(connectivity.size()); //starting from 0
-					//for (size_t i = 0; i < colored_vertices.size(); i++)
-					//{
-					//	for (size_t j = 0; j < colored_vertices[i].size(); j++)
-					//	{
-					//		colored_vertices[i][j] = n2o[colored_vertices[i][j]];
-					//		cluster_color[colored_vertices[i][j]] = i;
-					//	}
-					//}
-					//std::cout << "num of colors pre :" << colored_vertices.size() << std::endl;
-
-					//for (size_t i = 0; i < connectivity.size(); i++)
-					//{
-					//	//append
-					//	if (std::find(tree->keys.begin(), tree->keys.end(), i) == tree->keys.end())
-					//	{
-					//		cluster_color[i] = colored_vertices.size();
-					//		std::vector<size_t> leaf_vert;
-					//		leaf_vert.push_back(i);
-					//		colored_vertices.push_back(leaf_vert);
-					//	}
-					//}
-					//std::cout << "num of colors:" << colored_vertices.size() << std::endl;
-					//n_color = colored_vertices.size() + 1;
-					/*for (size_t i = 0; i < colored_vertices.size(); i++)
-					{
-						for (size_t j = 0; j < colored_vertices[i].size(); j++)
-						{
-							size_t local_id = colored_vertices[i][j];
-							for (size_t k = 0; k < face_clusters[local_id].size(); k++)
-							{
-								face_color[face_clusters[local_id][k]] = i + 1;
-							}
-						}
-					}*/
 					for (size_t i = 0; i < face_clusters.size(); i++)
 					{
 						size_t cc = cluster_color[i];
@@ -1240,7 +1007,6 @@ int main(int argc, char** argv)
 			}
 			
 			//sampling on triangles
-
 			std::vector<double> tri_mean_curvature_normalize(tri_verts.size(), 0.0);
 			if (result.count("cot"))
 			{
@@ -1254,7 +1020,6 @@ int main(int argc, char** argv)
 						tri_mean_curvature_normalize[i] += vert_curvature[tri_verts[i][j]];
 					}
 				}
-				//auto [minc, maxc] = std::minmax_element(begin(tri_mean_curvature_normalize), end(tri_mean_curvature_normalize));
 				auto maxele = std::max_element(begin(tri_mean_curvature_normalize), end(tri_mean_curvature_normalize));
 				auto minele = std::min_element(begin(tri_mean_curvature_normalize), end(tri_mean_curvature_normalize));
 				std::cout << "min curvature: " << *minele << " max curvature: " << *maxele << std::endl;
@@ -1262,59 +1027,8 @@ int main(int argc, char** argv)
 				for (size_t i = 0; i < tri_verts.size(); i++)
 				{
 					tri_mean_curvature_normalize[i] = (tri_mean_curvature_normalize[i] - *minele) / diff;
-					//tri_mean_curvature_normalize[i] = (*maxele -  tri_mean_curvature_normalize[i]) / diff;
 				}
 			}
-
-			//for (size_t i = 0; i < tri_area.size(); i++)
-			//{
-			//	tri_area[i] = std::abs(compute_tri_area<double>(vert_pos[tri_verts[i][0]], vert_pos[tri_verts[i][1]], vert_pos[tri_verts[i][2]]));
-			//	if (result.count("cot"))
-			//	{
-			//		tri_area[i] = tri_area[i] * exp(5 * tri_mean_curvature_normalize[i]);
-			//		//tri_area[i] = tri_area[i] * exp(5 * tri_mean_curvature_normalize[i]);
-			//		
-			//	}
-			//	total_tri_area += tri_area[i];
-			//}
-			//std::vector<double> tri_bound(tri_area.size() + 1, 0.0);
-			//for (size_t i = 0; i < tri_area.size(); i++)
-			//{
-			//	tri_bound[i + 1] = tri_bound[i] + tri_area[i] / total_tri_area;
-			//}
-
-			//commented on 1206
-			////first select each point on each face, then sample the rest points randomly
-			//for (size_t i = 0; i < mesh.get_num_of_faces(); i++)
-			//{
-			//	int fid = i;
-			//	double s = unif_dist(e2);
-			//	double t = unif_dist(e2);
-			//	if (s + t > 1)
-			//	{
-			//		s = 1 - s;
-			//		t = 1 - t;
-			//	}
-			//	TinyVector<double, 3> facenormal = mesh.get_faces_list()->at(fid)->normal;
-			//	if (result.count("s"))
-			//		sample_pts.push_back((1.0 - s - t) * vert_pos[tri_verts[fid][0]] + s * vert_pos[tri_verts[fid][1]] + t * vert_pos[tri_verts[fid][2]] + facenormal * normal_dist(e2));
-			//	else
-			//		sample_pts.push_back((1.0 - s - t) * vert_pos[tri_verts[fid][0]] + s * vert_pos[tri_verts[fid][1]] + t * vert_pos[tri_verts[fid][2]]);
-			//	
-			//	//sample mask to be added
-			//	if (result.count("sn"))
-			//	{
-			//		sample_pt_normals.push_back(perturb_normal(facenormal, angle_unif_dist(e2), angle_unif_dist(e2)));
-			//	}
-			//	else
-			//	{
-			//		sample_pt_normals.push_back(facenormal);
-			//	}
-			//	assert(face_color[fid] <= n_color);
-			//	//sample_mask[n_feature_sample + i] = face_color[fid];
-			//	sample_mask.push_back(face_color[fid]);
-			//}
-
 			//first sample at least min_pts_per_patch pts from each patch
 			if (flag_sample_pts)
 			{
@@ -1341,8 +1055,6 @@ int main(int argc, char** argv)
 					sample_pts.insert(sample_pts.end(), cur_sample_pts.begin(), cur_sample_pts.end());
 					sample_pt_normals.insert(sample_pt_normals.end(), cur_sample_normals.begin(), cur_sample_normals.end());
 					sample_mask.insert(sample_mask.end(), cur_sample_masks.begin(), cur_sample_masks.end());
-
-
 				}
 
 				if (sample_mask.size() < n_nonfeature_sample)
@@ -1359,45 +1071,6 @@ int main(int argc, char** argv)
 				{
 					std::cout << "too many patches for model: " << inputfile << std::endl;
 				}
-				//randomly sample the rest
-				//for (size_t i = mesh.get_num_of_faces(); i < n_nonfeature_sample; i++)
-				//{
-				//	double u = unif_dist(e2);
-				//	auto iter = std::upper_bound(tri_bound.begin(), tri_bound.end(), u);
-				//	int fid = (int)std::distance(tri_bound.begin(), iter);
-				//	assert(fid != tri_verts.size() + 1);
-				//	fid = std::max(0, fid - 1);
-				//	//sample
-				//	//int id0 = ungrouped_features[fid].first;
-				//	//int id1 = ungrouped_features[fid].second;
-				//	double s = unif_dist(e2);
-				//	double t = unif_dist(e2);
-				//	if (s + t > 1)
-				//	{
-				//		s = 1 - s;
-				//		t = 1 - t;
-				//	}
-				//	TinyVector<double, 3> facenormal = mesh.get_faces_list()->at(fid)->normal;
-				//	if (result.count("s"))
-				//		sample_pts.push_back((1.0 - s - t) * vert_pos[tri_verts[fid][0]] + s * vert_pos[tri_verts[fid][1]] + t * vert_pos[tri_verts[fid][2]] + facenormal * normal_dist(e2));
-				//	else
-				//		sample_pts.push_back((1.0 - s - t) * vert_pos[tri_verts[fid][0]] + s * vert_pos[tri_verts[fid][1]] + t * vert_pos[tri_verts[fid][2]]);
-				//	//sample_pt_normals.push_back(facenormal);
-				//	if (result.count("sn"))
-				//	{
-				//		sample_pt_normals.push_back(perturb_normal(facenormal, angle_unif_dist(e2), angle_unif_dist(e2)));
-				//	}
-				//	else
-				//	{
-				//		sample_pt_normals.push_back(facenormal);
-				//	}
-				//	//sample mask to be added
-				//	assert(face_color[fid] <= n_color);
-				//	//sample_mask[n_feature_sample + i] = face_color[fid];
-				//	sample_mask.push_back(face_color[fid]);
-				//	//sample_pts.push_back(s * mesh.get_vertices_list()->at(id0)->pos + (1.0 - s) * mesh.get_vertices_list()->at(id1)->pos);
-				//	//sample_pt_normals.push_back(TinyVector<double, 3>(1.0, 0.0, 0.0));
-				//}
 
 				std::ofstream outputsamples(outputfile.c_str());
 
@@ -1416,10 +1089,7 @@ int main(int argc, char** argv)
 				}
 			}
 			
-			
-			
 			//output ply
-			//double u = unif_dist(e2);
 			std::vector<std::array<double, 3>> branch_color;
 			for (size_t i = 0; i < n_color; i++)
 			{
@@ -1472,121 +1142,5 @@ int main(int argc, char** argv)
 		std::cout << "error parsing options: " << e.what() << std::endl;
 		exit(1);
 	}
-	return 0;
-	
-	//int process_mode = std::stoi(argv[1]);
-	//if (process_mode == 0 && argc != 4)
-	//{
-	//	std::cout << "Input format: " << argv[0] << " process_mode input.obj output.obj" << std::endl;
-	//	return 1;
-	//}
-
-	//if (process_mode == 1 && argc != 7 )
-	//{
-	//	std::cout << "Input format: " << argv[0] << " process_mode input.obj input.fea output.points/xyz output_mask.txt [optional]n_nonfeature_sample" << std::endl;
-	//}
-	//
-
-
-	//Mesh3d mesh;
-	//mesh.load_obj(argv[2]);
-	//std::cout << "verts: " << mesh.get_vertices_list()->size() << " face:  " << mesh.get_faces_list()->size() << std::endl;
-	//std::cout << "process mode: " << process_mode << std::endl;
-	//
-	//if (process_mode == 0)
-	//{
-	//	std::cout << "enter normalizing" << std::endl;
-	//	////normalization part begin
-	//	//[-0.9, 9]^3
-	//	std::vector<TinyVector<double, 3>> pts_nl(mesh.get_vertices_list()->size());
-	//	double max_range = mesh.xmax - mesh.xmin;
-	//	max_range = max_range < (mesh.ymax - mesh.ymin) ? (mesh.ymax - mesh.ymin) : max_range;
-	//	max_range = max_range < (mesh.zmax - mesh.zmin) ? (mesh.zmax - mesh.zmin) : max_range;
-
-	//	double xcenter = (mesh.xmin + mesh.xmax) / 2;
-	//	double ycenter = (mesh.ymin + mesh.ymax) / 2;
-	//	double zcenter = (mesh.zmin + mesh.zmax) / 2;
-	//	std::cout << "center " << xcenter << " " << ycenter << " " << zcenter << std::endl;
-
-	//	for (size_t i = 0; i < mesh.get_vertices_list()->size(); i++)
-	//	{
-	//		mesh.get_vertices_list()->at(i)->pos[0] = (mesh.get_vertices_list()->at(i)->pos[0] - xcenter) / max_range * 1.8;
-	//		mesh.get_vertices_list()->at(i)->pos[1] = (mesh.get_vertices_list()->at(i)->pos[1] - ycenter) / max_range * 1.8;
-	//		mesh.get_vertices_list()->at(i)->pos[2] = (mesh.get_vertices_list()->at(i)->pos[2] - zcenter) / max_range * 1.8;
-	//	}
-	//	
-	//	//output mesh
-	//	mesh.write_obj(argv[2]);
-	//	return 1;
-	//	////normalization part end
-	//}
-	//
-
-	////feature transfer part
-	////currently all normals are set to 1.0 0.0 0.0
-	//std::ifstream inputfeature(argv[2]);
-	//std::ofstream outputfile(argv[3]);
-	//std::ofstream outputmask(argv[4]);
-	//int non_feature_samples = atoi(argv[5]);
-
-	////std::vector<double> coordx, coordy, coordz;
-	//std::vector<int> faces;
-	///*std::string str;
-	//inputfile >> str;
-	//inputfile >> str;*/
-
-	//std::vector<std::pair<int, int>> ungrouped_features;
-	//std::vector<std::vector<std::pair<int, int>>> grouped_features;
-	//load_feature_file(argv[2], ungrouped_features, grouped_features);
-
-	////sample 10 pts on each feature segments
-	//int n_seg = 10;
-	//for (size_t i = 0; i < ungrouped_features.size(); i++)
-	//{
-	//	int id0 = ungrouped_features[i].first;
-	//	int id1 = ungrouped_features[i].second;
-	//	double sx = (mesh.get_vertices_list()->at(id1)->pos[0] - mesh.get_vertices_list()->at(id0)->pos[0]) / n_seg;
-	//	double sy = (mesh.get_vertices_list()->at(id1)->pos[1] - mesh.get_vertices_list()->at(id0)->pos[1]) / n_seg;
-	//	double sz = (mesh.get_vertices_list()->at(id1)->pos[2] - mesh.get_vertices_list()->at(id0)->pos[2]) / n_seg;
-	//	//point normal as average normal of neighboring faces
-	//	HE_edge<double>* te = NULL;
-	//	HE_edge<double>* ve_begin = mesh.get_vertices_list()->at(id0)->edge;
-	//	assert(ve_begin->pair->vert->id == id0);
-	//	HE_edge<double>* ve_iter = ve_begin;
-	//	do
-	//	{
-	//		int next_id = ve_iter->vert->id;
-	//		if (next_id == id1)
-	//		{
-	//			te = ve_iter;
-	//			break;
-	//		}
-	//		ve_iter = ve_iter->pair->next;
-	//	} while (ve_iter != ve_begin);
-
-	//	//std::cout << "edge id: " << te->id << std::endl;
-	//	assert(te != NULL);
-	//	TinyVector<double, 3> avg_normal = te->face->normal + te->pair->face->normal;
-	//	avg_normal.Normalize();
-	//	for (size_t j = 0; j < n_seg; j++)
-	//	{
-	//		outputfile << mesh.get_vertices_list()->at(id0)->pos[0] + sx * j << " " << mesh.get_vertices_list()->at(id0)->pos[1] + sy * j << " " << mesh.get_vertices_list()->at(id0)->pos[2] + sz * j << " " << avg_normal << std::endl;
-	//	}
-	//}
-
-	//outputfile.close();
-	//
-	//for (size_t i = 0; i < non_feature_samples; i++)
-	//{
-	//	outputmask << "0\n";
-	//}
-	//for (size_t i = 0; i < ungrouped_features.size() * n_seg; i++)
-	//{
-	//	outputmask << "1\n";
-	//}
-	//outputmask.close();
-
-	//system("pause");
-
 	return 0;
 }
