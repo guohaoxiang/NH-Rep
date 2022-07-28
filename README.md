@@ -137,4 +137,4 @@ MIT Licence
 Please contact us (Haoxiang Guo guohaoxiangxiang@gmail.com, Yang Liu yangliu@microsoft.com) if you have any question about our implementation.
 
 ## Acknowledgement
-This implementation takes [IGR](https://github.com/amosgropp/IGR) as references. We thank the authors for their excellent work.
+This implementation takes [IGR](https://github.com/amosgropp/IGR) as references. Our codes also include [happly](https://github.com/nmwsharp/happly), [yaml-cpp](https://github.com/jbeder/yaml-cpp), [cxxopts](https://github.com/jarro2783/cxxopts) and [Geometric Tools](https://github.com/davideberly/GeometricTools). We thank the authors for their excellent work.
