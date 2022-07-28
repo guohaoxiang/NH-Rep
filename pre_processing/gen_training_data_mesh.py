@@ -1,7 +1,8 @@
 import os
 from multiprocessing import Pool
 
-data_path = 'raw_input'
+# data_path = 'raw_input'
+data_path = 'flip_cube'
 feature_sampling_path = './Bin/FeatureSample'
 
 

@@ -77,7 +77,6 @@ T tree_coloring(const TreeNode<T>* tree, const std::vector<std::set<T>>& connect
 	}
 
 
-	//std::vector<T> cluster_color(connectivity.size()); //starting from 0
 	for (size_t i = 0; i < colored_vertices.size(); i++)
 	{
 		for (size_t j = 0; j < colored_vertices[i].size(); j++)

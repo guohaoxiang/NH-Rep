@@ -913,7 +913,9 @@ int main(int argc, char** argv)
 				TreeNode<size_t> *tree = new TreeNode<size_t>;
 				;
 				bool flag_convex = true;
-				//convex flag is set to true by default, but if the model contains multiple component, then it is set to concave
+				//convex flag is set to true by default, but if the model contains multiple component, then it is set to false
+
+				//if all features are concave, then flag_convex set to false
 
 				std::vector<std::set<size_t>> components;
 				get_graph_component(connectivity, components);
