@@ -10,7 +10,7 @@ Please first download the raw data of ABC dataset [here](https://pan.baidu.com/s
 
 **Installation**
 
-Please first install the Boost and eigen3 library, you can install them via [homebrew](https://brew.sh/):
+Please first install the Boost and eigen3 library:
 
         $ sudo apt install libboost-all-dev
         $ sudo apt install libeigen3-dev
