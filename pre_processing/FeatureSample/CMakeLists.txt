@@ -26,3 +26,5 @@ include_directories(${PROJECT_SOURCE_DIR})
 
 set(CMAKE_DEBUG_POSTFIX "d")
 add_executable(FeatureSample ${project_cpps})
+
+target_link_libraries(FeatureSample igl::core)

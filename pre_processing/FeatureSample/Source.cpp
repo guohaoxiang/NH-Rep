@@ -5,7 +5,6 @@
 #include <set>
 #include <random>
 #include <algorithm>
-#include <direct.h>
 #include "cxxopts.hpp"
 #include "Mesh3D.h"
 #include "helper.h"
@@ -1446,20 +1445,6 @@ int main(int argc, char** argv)
 
 			// Write the object to file
 			plyOut.write(output_prefix + "_patch_"+ std::to_string(n_color - 1) +".ply", happly::DataFormat::ASCII);
-
-			_mkdir(output_prefix.c_str());
-			for (size_t i = 0; i < n_color; i++)
-			{
-				std::ofstream ofs((output_prefix + "\\" +  std::to_string(i) + ".xyz"));
-				for (size_t j = 0; j < sample_pts.size(); j++)
-				{
-					if (sample_mask[j] == i)
-					{
-						ofs << sample_pts[j] << " " << sample_pt_normals[j] << std::endl;
-					}
-				}
-				ofs.close();
-			}
 
 			std::ofstream outputmask(outputmaskfile.c_str());
 			for (size_t i = 0; i < sample_mask.size(); i++)

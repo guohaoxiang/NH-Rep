@@ -27,3 +27,5 @@ include_directories(${CMAKE_SOURCE_DIR}/yaml-cpp/include/yaml-cpp ${PROJECT_SOUR
 set(CMAKE_DEBUG_POSTFIX "d")
 add_executable(ParametricSample ${project_cpps})
 target_link_libraries(ParametricSample yaml-cpp)
+
+target_link_libraries(ParametricSample igl::core)
