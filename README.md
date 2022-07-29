@@ -75,7 +75,7 @@ p_0  p_1  min
       p_2 p_3  p_4
 ```
 
-If you want to generate our training data from the raw ABC dataset, please refer [here](data/pre_processing/README.md).
+If you want to generate our training data from the raw ABC dataset, please refer [here](code/pre_processing/README.md).
 
 **\[Optional\]** You can also download the output of NH-Rep [here](https://pan.baidu.com/s/1ogCm5SPUHzFmDOOKngisLQ?pwd=asdf) and unzip it under _data_ folder. For each model, there will be 2 outputs:
 ```
