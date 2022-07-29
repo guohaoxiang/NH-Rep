@@ -89,8 +89,8 @@ With the provided output data, you can skip training and directly go to the eval
 
 To convert the whole dataset to neural halfspace representation by training from scratch, run:
 
-        $ cd PATH_TO_NH-REP/conversion
-        $ python run.py --conf setup_all.conf --pt output_data
+        $ cd PATH_TO_NH-REP/code/conversion
+        $ python run.py --conf setup_all.conf --pt ../data/output_data
 
 As there are totally over 10,000 models, the training will take a long long time. We recommend you to use multiple gpus for training. To do this, simply create more *.conf files and distribute 'fileprefix_list' of _setup_all.conf_ into each of them.
 
@@ -98,14 +98,14 @@ As there are totally over 10,000 models, the training will take a long long time
 
 To conduct evaluation, you need to firstly build a point-sampling tool.
 
-        $ cd PATH_TO_NH-REP/evaluation/MeshFeatureSample
+        $ cd PATH_TO_NH-REP/code/evaluation/MeshFeatureSample
         $ mkdir build && cd build
         $ cmake ..
         $ make
 
 Then you can evaluate the conversion quality (CD, HD, NAE, FCD, FAE) of the broken_bullet model:
 
-        $ cd PATH_TO_NH-REP/evaluation
+        $ cd PATH_TO_NH-REP/code/evaluation
         $ python evaluation.py 
 
 To evaluate the whole dataset, please download [eval_data](https://pan.baidu.com/s/1XEy9H_mI43Egl3-wYYutfQ?pwd=asdf) and unzip it under the root folder, then run:

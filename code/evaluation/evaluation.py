@@ -11,8 +11,8 @@ import pickle
 import argparse
 # parse args first and set gpu id
 parser = argparse.ArgumentParser()
-parser.add_argument('--gt_path', type=str, default='../eval_data', help='ground truth data path')
-parser.add_argument('--pred_path', type=str, default='../output_data', help='converted data path')
+parser.add_argument('--gt_path', type=str, default='../../data/eval_data', help='ground truth data path')
+parser.add_argument('--pred_path', type=str, default='../../data/output_data', help='converted data path')
 parser.add_argument('--name_list', type=str, default='broken_bullet_name.txt', help='names of models to be evaluated, if you want to evaluate the whole dataset, please set it as all_names.txt')
 parser.add_argument('--nsample', type=int, default=50000, help='point batch size')
 parser.add_argument('--regen', default = False, action="store_true", help = 'regenerate feature curves')
