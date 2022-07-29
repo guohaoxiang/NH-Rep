@@ -16,13 +16,14 @@ Please first install the Boost and eigen3 library:
         $ sudo apt install libeigen3-dev
 Then run:
 
-        $ cd PATH_TO_NH-REP/pre_processing
+        $ cd PATH_TO_NH-REP/code/pre_processing
         $ mkdir build && cd build
         $ cmake ..
         $ make
 
 You can generate the training data:
 
+        $ cd ..
         $ python gen_training_data_yaml.py
 
 If you do not have a yaml file and want to generate sample points from meshes, you can prepare the *.fea file as sharp feature curves of the meshes, then run:

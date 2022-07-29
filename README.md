@@ -23,20 +23,20 @@ The code has been tested on a Ubuntu 18.04 server with CUDA 10.2 installed.
 This is the most convenient way to try _NH\_Rep_, everything is already settled down in the docker.
 
         $ docker pull horaceguo/pytorchigr:isg
-        $ docker run --runtime=nvidia --ipc=host --net=host -v /path/to/nh_rep/:/workspace -t -i horaceguo/pytorchigr:isg
+        $ docker run --runtime=nvidia --ipc=host --net=host -v PATH_TO_NH-REP/:/workspace -t -i horaceguo/pytorchigr:isg
         $ cd /workspace
         
 Then you can convert the points sampled on B-Rep model in _input\_data_ to implicit representation:
 
-        $ cd conversion
-        $ python run.py --conf setup.conf --pt output_data
+        $ cd code/conversion
+        $ python run.py --conf setup.conf --pt ../data/output_data
 
-The training will take about 8 minutes to finish. Currently we only support training with one gpu, you can set gpu id via _--gpu_ flag. The output neural implicit function (broken_bullet_50k_model_h.pt) are stored in folder _output\_data_, whose zero surface can be extracted with our iso-surface generator:
+The training will take about 8 minutes to finish. Currently we only support training with one gpu, you can set gpu id via _--gpu_ flag. The output neural implicit function (broken_bullet_50k_model_h.pt) are stored in folder _data/output\_data_, whose zero surface can be extracted with our iso-surface generator:
 
-        $ cd ../output_data
+        $ cd PATH_TO_NH-REP/data/output_data
         $ /usr/myapp/ISG -i broken_bullet_50k_model_h.pt -o broken_bullet_50k.ply -d 8
 
-You will find the feature-preserving zero-surface mesh (broken_bullet_50k.ply) in _output\_data_.
+You will find the feature-preserving zero-surface mesh (broken_bullet_50k.ply) in _data/output\_data_.
 
 **Via Conda**
 
@@ -45,18 +45,18 @@ You can also setup the environment with conda:
         $ conda env create -f environment.yml
         $ conda activate nhrep
 
-Meanwhile, you need to build iso-surface generator mannually, please refer [here](IsoSurfaceGen/README.md). The built executable file lies in _IsoSurfaceGen/build/App/console_pytorch/ISG_console_pytorch_.
+Meanwhile, you need to build iso-surface generator mannually, please refer [here](code/IsoSurfaceGen/README.md). The built executable file lies in _code/IsoSurfaceGen/build/App/console_pytorch/ISG_console_pytorch_.
 
 After that, you can conduct implicit conversion and iso-surface extraction as mentioned above.
 
 ## Data downloading
-We provide the pre-processed ABC dataset used for training NH-Rep [here](https://pan.baidu.com/s/1F8kKQM7AcOPBrl1oqLgJQA?pwd=asdf), which can be extracted by [7-Zip](https://www.7-zip.org/). Please unzip it under the root folder. For each model, there will be 3 input items:
+We provide the pre-processed ABC dataset used for training NH-Rep [here](https://pan.baidu.com/s/1F8kKQM7AcOPBrl1oqLgJQA?pwd=asdf), which can be extracted by [7-Zip](https://www.7-zip.org/). Please unzip it under the _data_ folder. For each model, there will be 3 input items:
 ```
 *_50k.xyz: 50,000 sampled points of the input B-Rep, can be visualized with MeshLab.
 *_50k_mask.txt: (patch_id + 1) of sampled points.
 *_50k_csg.conf: Boolean tree built on the patches, stored in nested lists. 'flag_convex' indicates the convexity of the root node. 
 ```
-For example, ./input_data/broken_bullet_50k_csg.conf looks like:
+For example, _data/input_data/broken_bullet_50k_csg.conf_ looks like:
 ```
 csg{
     list = [0,1,[2,3,4,],],
@@ -75,9 +75,9 @@ p_0  p_1  min
       p_2 p_3  p_4
 ```
 
-If you want to generate our training data from the raw ABC dataset, please refer [here](pre_processing/README.md).
+If you want to generate our training data from the raw ABC dataset, please refer [here](data/pre_processing/README.md).
 
-**\[Optional\]** You can also download the output of NH-Rep [here](https://pan.baidu.com/s/1ogCm5SPUHzFmDOOKngisLQ?pwd=asdf). For each model, there will be 2 outputs:
+**\[Optional\]** You can also download the output of NH-Rep [here](https://pan.baidu.com/s/1ogCm5SPUHzFmDOOKngisLQ?pwd=asdf) and unzip it under _data_ folder. For each model, there will be 2 outputs:
 ```
 *_50k_model_h.pt: implicit function of root node stored with TorchScript.
 *_50k.ply: extracted zero surface of the implicit function.
