@@ -108,7 +108,7 @@ Then you can evaluate the conversion quality (CD, HD, NAE, FCD, FAE) of the brok
         $ cd PATH_TO_NH-REP/code/evaluation
         $ python evaluation.py 
 
-To evaluate the whole dataset, please download [eval_data](https://pan.baidu.com/s/1XEy9H_mI43Egl3-wYYutfQ?pwd=asdf) and unzip it under the root folder, then run:
+To evaluate the whole dataset, please download [eval_data](https://pan.baidu.com/s/1XEy9H_mI43Egl3-wYYutfQ?pwd=asdf) and unzip it under the _data_ folder, then run:
 
         $ python evaluation.py --name_list all_names.txt
 
@@ -116,7 +116,7 @@ Statistics will be stored in _eval_results.csv_.
 
 The *.ptangle* file used for evaluation stores position and dihedral angle (in degree) of points uniformly sampled on sharp features of a model.
 
-To evaluate the DE and IoU metric, you need to download ground truth mesh data from [here](https://pan.baidu.com/s/1uob8xASuUbXzJyuo9EsOZA?pwd=asdf), and unzip it under the root folder. You also need to build _IsoSurfaceGen_, then switch to folder _PATH_TO_NH-REP/output_data_, run:
+To evaluate the DE and IoU metric, you need to download ground truth mesh data from [here](https://pan.baidu.com/s/1uob8xASuUbXzJyuo9EsOZA?pwd=asdf), and unzip it under the root folder. You also need to build _code/IsoSurfaceGen_, then switch to folder _PATH_TO_NH-REP/data/output_data_, run:
 
         $ python eval_de_iou.py
 
