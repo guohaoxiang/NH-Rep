@@ -1,6 +1,6 @@
 ## Data pre-processing
 
-Please first download the raw data of ABC dataset [here](https://pan.baidu.com/s/1N8E_8xhwKmE2UHuJhdFPZA?pwd=asdf), and unzip it under current folder. We split the models with multiple components. There will be 3 items for each model:
+Please first download the raw data of ABC dataset from [BaiduYun](https://pan.baidu.com/s/1N8E_8xhwKmE2UHuJhdFPZA?pwd=asdf) or [OneDrive](https://1drv.ms/u/s!Ar3e2GVr5NQN9W7TKeRjZTYydsOW?e=WnVGsE), and unzip it under current folder. We split the models with multiple components. There will be 3 items for each model:
 
 ```
 *.obj: surface mesh of the model.
