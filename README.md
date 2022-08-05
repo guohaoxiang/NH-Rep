@@ -50,7 +50,7 @@ Meanwhile, you need to build iso-surface generator mannually, please refer [here
 After that, you can conduct implicit conversion and iso-surface extraction as mentioned above.
 
 ## Data downloading
-We provide the pre-processed ABC dataset used for training NH-Rep [here](https://pan.baidu.com/s/1F8kKQM7AcOPBrl1oqLgJQA?pwd=asdf), which can be extracted by [7-Zip](https://www.7-zip.org/). Please unzip it under the _data_ folder. For each model, there will be 3 input items:
+We provide the pre-processed ABC dataset used for training NH-Rep, you can download it from [BaiduYun](https://pan.baidu.com/s/1F8kKQM7AcOPBrl1oqLgJQA?pwd=asdf) or [OneDrive](https://1drv.ms/u/s!Ar3e2GVr5NQN9XYOCbeISf0z5GuB?e=V5ppev), which can be extracted by [7-Zip](https://www.7-zip.org/). Please unzip it under the _data_ folder. For each model, there will be 3 input items:
 ```
 *_50k.xyz: 50,000 sampled points of the input B-Rep, can be visualized with MeshLab.
 *_50k_mask.txt: (patch_id + 1) of sampled points.
@@ -77,7 +77,7 @@ p_0  p_1  min
 
 If you want to generate our training data from the raw ABC dataset, please refer [here](code/pre_processing/README.md).
 
-**\[Optional\]** You can also download the output of NH-Rep [here](https://pan.baidu.com/s/1ogCm5SPUHzFmDOOKngisLQ?pwd=asdf) and unzip it under _data_ folder. For each model, there will be 2 outputs:
+**\[Optional\]** You can also download the output of NH-Rep from [BaiduYun](https://pan.baidu.com/s/1ogCm5SPUHzFmDOOKngisLQ?pwd=asdf) or [OneDrive](https://1drv.ms/u/s!Ar3e2GVr5NQN9W26y62lhSLRwQKL?e=lHuHXe), and unzip it under _data_ folder. For each model, there will be 2 outputs:
 ```
 *_50k_model_h.pt: implicit function of root node stored with TorchScript.
 *_50k.ply: extracted zero surface of the implicit function.
@@ -108,7 +108,7 @@ Then you can evaluate the conversion quality (CD, HD, NAE, FCD, FAE) of the brok
         $ cd PATH_TO_NH-REP/code/evaluation
         $ python evaluation.py 
 
-To evaluate the whole dataset, please download [eval_data](https://pan.baidu.com/s/1XEy9H_mI43Egl3-wYYutfQ?pwd=asdf) and unzip it under the _data_ folder, then run:
+To evaluate the whole dataset, please download 'eval_data' from [BaiduYun](https://pan.baidu.com/s/1XEy9H_mI43Egl3-wYYutfQ?pwd=asdf) or [OneDrive](https://1drv.ms/u/s!Ar3e2GVr5NQN9XFMHUGg_kOigBrN?e=dBNs6V), and unzip it under the _data_ folder, then run:
 
         $ python evaluation.py --name_list all_names.txt
 
@@ -116,7 +116,7 @@ Statistics will be stored in _eval_results.csv_.
 
 The *.ptangle* file used for evaluation stores position and dihedral angle (in degree) of points uniformly sampled on sharp features of a model.
 
-To evaluate the DE and IoU metric, you need to download ground truth mesh data from [here](https://pan.baidu.com/s/1uob8xASuUbXzJyuo9EsOZA?pwd=asdf), and unzip it under the root folder. You also need to build _code/IsoSurfaceGen_, then switch to folder _PATH_TO_NH-REP/data/output_data_, run:
+To evaluate the DE and IoU metric, you need to download ground truth mesh data from [BaiduYun](https://pan.baidu.com/s/1uob8xASuUbXzJyuo9EsOZA?pwd=asdf) or [OneDrive](https://1drv.ms/u/s!Ar3e2GVr5NQN9XTzUmZ4XaDyXKkf?e=TBTgJR), and unzip it under the root folder. You also need to build _code/IsoSurfaceGen_, then switch to folder _PATH_TO_NH-REP/data/output_data_, run:
 
         $ python eval_de_iou.py
 
