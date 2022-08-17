@@ -718,7 +718,8 @@ void repair_tree_features_maxflow(Mesh3d& m, const std::vector<int>& face_color,
 	//repair patch by patch
 	if (flag_patchbypatch)
 	{
-		for (auto cid : invalid_colors)
+		//for (auto cid : invalid_colors)
+		auto cid = invalid_colors[0];
 		{
 			std::vector<std::vector<size_t>> cur_faces;
 			for (size_t i = 0; i < face_color.size(); i++)
