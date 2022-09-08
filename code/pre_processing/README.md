@@ -57,4 +57,4 @@ You can find the generated training data of the decomposed patch in _training_da
 
 https://github.com/guohaoxiang/NH-Rep/blob/42ae22bf8fc3f1b4f9f5592443c29aafe86905bd/code/pre_processing/FeatureSample/helper.cpp#L722
 
-and re-run 'python gen_training_data_yaml.py' and 'python gen_training_data_yaml.py -r'. There will be generated training data in _training_data_repair_.
+After that, rebuild the executable files, and re-run 'python gen_training_data_yaml.py' and 'python gen_training_data_yaml.py -r'. There will be generated training data in _training_data_repair_.
