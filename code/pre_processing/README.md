@@ -55,4 +55,6 @@ or
         
 You can find the generated training data of the decomposed patch in _training_data_repair_. By default we only decompose one patch and it is enough for most models. But if you find *_fixtree.obj and *_fixtree.fea in _training_data_repair_, that means that more patches need to decomposed. There are two ways to achieve this. First, you can copy _training_data_repair./*_fixtree.obj_ and _training_data_repair./*_fixtree.fea_ to _training_data_repair_, and re-run 'python gen_training_data_yaml.py -r', until enough patches are decomposed (*.conf files can be found in _training_data_repair_). Another way is to decompose all patches at once, to achieve this, simple uncomment the following line in _FeatureSample/helper.cpp_:
 
+https://github.com/guohaoxiang/NH-Rep/blob/42ae22bf8fc3f1b4f9f5592443c29aafe86905bd/code/pre_processing/FeatureSample/helper.cpp#L722
+
 and re-run 'python gen_training_data_yaml.py' and 'python gen_training_data_yaml.py -r'. There will be generated training data in _training_data_repair_.
