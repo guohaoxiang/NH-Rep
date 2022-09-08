@@ -45,7 +45,7 @@ If you do not have a yaml file and want to generate sample points from meshes, y
 Please make sure that you set 'in_path' in _gen_training_data_yaml.py_ and _gen_training_data_mesh.py_ as the path containing the *.fea files.
 
 
-When patch decomposition is conducted (like model 00007974_5), there will be *_fixtree.obj and *_fixtree.fea in _training_data_, which can be used for generating point samples in later round:
+When patch decomposition is conducted (like model 00007974_5), there will be *fixtree.obj and *fixtree.fea in _training_data_, which can be used for generating point samples in later round:
 
         $ python gen_training_data_yaml.py -r
 
@@ -53,7 +53,7 @@ or
 
         $ python gen_training_data_mesh.py -r
         
-You can find the generated training data of the decomposed patch in _training_data_repair_. By default we only decompose one patch and it is enough for most models. But if you find *_fixtree.obj and *_fixtree.fea in _training_data_repair_, that means that more patches need to decomposed. There are two ways to achieve this. First, you can copy _training_data_repair./*_fixtree.obj_ and _training_data_repair./*_fixtree.fea_ to _training_data_repair_, and re-run 'python gen_training_data_yaml.py -r', until enough patches are decomposed (*.conf files can be found in _training_data_repair_). Another way is to decompose all patches at once, to achieve this, simple uncomment the following line in _FeatureSample/helper.cpp_:
+You can find the generated training data of the decomposed patch in _training_data_repair_. By default we only decompose one patch and it is enough for most models. But if you find *fixtree.obj and *fixtree.fea in _training_data_repair_, that means that more patches need to decomposed. There are two ways to achieve this. First, you can copy _training_data_repair./*fixtree.obj_ and _training_data_repair./*fixtree.fea_ to _training_data_, and re-run 'python gen_training_data_yaml.py -r', until enough patches are decomposed (i.e. *.conf files can be found in _training_data_repair_). Another way is to decompose all patches at once, to achieve this, simple uncomment the following line in _FeatureSample/helper.cpp_:
 
 https://github.com/guohaoxiang/NH-Rep/blob/42ae22bf8fc3f1b4f9f5592443c29aafe86905bd/code/pre_processing/FeatureSample/helper.cpp#L722
 
