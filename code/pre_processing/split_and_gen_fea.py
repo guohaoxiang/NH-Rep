@@ -2,6 +2,8 @@ import os
 import numpy as np
 from load_obj import *
 import yaml
+import platform
+sys_info = platform.system()
 
 in_path = 'abc_data'
 out_path = 'raw_input'
@@ -44,14 +46,11 @@ def split_single_sample(mesh_file):
   yaml_file = mesh_file.replace(".obj", ".yml")
   assert(os.path.exists(yaml_file))
   with open(yaml_file, "r") as f: feature_dict_all = yaml.safe_load(f)
-  # curves = feature_dict['curves']
-  # patches = feature_dict['surfaces']
   
   curves_all = []
   patches_all = []
   if 'curves' in feature_dict_all:
     curves_all = feature_dict_all['curves']
-  # if 'surfaces' in feature_dict:
   patches_all = feature_dict_all['surfaces']
 
   #classifiy patches and curves
@@ -71,12 +70,6 @@ def split_single_sample(mesh_file):
       comp2patches[i][j].pop('vert_indices', None)
       for k in range(len(comp2patches[i][j]['face_indices'])):
         comp2patches[i][j]['face_indices'][k] = perpatch_faceo2n[i][comp2patches[i][j]['face_indices'][k]]
-  
-  #output obj
-  # for i in range(ncomp):
-  #   # write_obj_simple(mesh_file.replace('.obj', '_{}.obj'.format(i)), mesh.vertices, mesh.faces[comp2faces[i]])
-
-  #   write_obj_simple(os.path.join(out_path, mesh_file.replace(".obj", "_{}.obj".format(i)).split('\\')[-1]), mesh.vertices, mesh.faces[comp2faces[i]])
 
   for compid in range(ncomp):
     print('compid: ', compid)
@@ -92,14 +85,11 @@ def split_single_sample(mesh_file):
 
     cur_faces = vert_o2n[mesh.faces[comp2faces[compid]].reshape(-1)].reshape(-1,3)
     cur_verts = mesh.vertices[vert_valid_id]
-    write_obj_simple(os.path.join(out_path, mesh_file.split('\\')[-1]), cur_verts, cur_faces)
+    write_obj_simple(os.path.join(out_path, os.path.basename(mesh_file)), cur_verts, cur_faces)
+    output_yaml = os.path.join(out_path, os.path.basename(mesh_file.replace(".obj", ".yml")))
+
     #update face id of patches
     flag_cylinder_cube = False
-    # for i in range(len(feature_dict['surfaces'])):
-    #   feature_dict['surfaces'][i]['face_indices'] = feature_dict['surfaces'][i]['face_indices'].tolist()
-
-    output_yaml = os.path.join(out_path, mesh_file.replace(".obj", ".yml").split('\\')[-1])
-
     with open(output_yaml, 'w') as yaml_file:
       yaml.dump(feature_dict, yaml_file, default_flow_style=True)
 
@@ -119,7 +109,8 @@ def split_single_sample(mesh_file):
         flag_cylinder_cube = True
 
     if flag_cylinder_cube:
-      tmpfile = os.path.join(out_path, mesh_file.replace(".obj", ".cylindercube").split('\\')[-1])
+      tmpfile = os.path.join(out_path, os.path.basename(mesh_file.replace(".obj", ".cylindercube")))
+
       f = open(tmpfile, 'w')
       f.close()
 
@@ -232,8 +223,8 @@ def gen_fea_file(mesh_file):
     curves = comp2curves[compid]
     patches = comp2patches[compid]
     feature_dict = {'curves': curves, 'surfaces': patches}
-    curve_sample_points_file = os.path.join(out_path, mesh_file.replace(".obj", "_curve.sample.xyz").split('\\')[-1])
-
+    
+    curve_sample_points_file = os.path.join(out_path, os.path.basename(mesh_file.replace(".obj", "_curve.sample.xyz")))
     if True:
       curve_sample_points = np.reshape(sample_points_on_each_curve(mesh, curves), [-1,3])
       np.savetxt(curve_sample_points_file, curve_sample_points)
@@ -244,7 +235,7 @@ def gen_fea_file(mesh_file):
     vert_o2n[vert_valid_id] = np.arange(vert_valid_id.shape[0])
     cur_faces = vert_o2n[mesh.faces[comp2faces[compid]].reshape(-1)].reshape(-1,3)
     cur_verts = mesh.vertices[vert_valid_id]
-    write_obj_simple(os.path.join(out_path, mesh_file.split('\\')[-1]), cur_verts, cur_faces)
+    write_obj_simple(os.path.join(out_path, os.path.basename(mesh_file)), cur_verts, cur_faces)
     
     #save feature file
     feature_list = []
@@ -271,7 +262,8 @@ def gen_fea_file(mesh_file):
           feature_list.append(vert_o2n[curves[curve_idx]['vert_indices'][-1]])
           feature_list.append(vert_o2n[curves[curve_idx]['vert_indices'][0]])
 
-    feature_file = os.path.join(out_path, mesh_file.replace(".obj", ".fea").split('\\')[-1])
+    feature_file = os.path.join(out_path, os.path.basename(mesh_file.replace(".obj", ".fea")))
+
     f = open(feature_file, 'w')
     f.write('{}\n'.format(len(feature_list)//2))
     for i in range(len(feature_list)//2):
