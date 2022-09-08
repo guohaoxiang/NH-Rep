@@ -15,7 +15,7 @@ def gen_one_para_sample(yamlfile):
     fea_path =           obj_path.replace('.obj','.fea')
     xyz_path =           obj_path.replace('.obj', '_50k.xyz')
     mask_path =          obj_path.replace('.obj', '_50k_mask.txt')
-    para_pts_path =      obj_path.replace('.obj', '_50k_lalala.xyz')
+    para_pts_path =      obj_path.replace('.obj', '_50k.xyz')
     para_ptsface_path =  obj_path.replace('.obj', '_50k_tris.txt')
 
     os.system("{} -i {} -o {} -f {} -k {} -m 1 --ns 50000 --fs 0 -c 1 --csg 1 --repairtree --convex 1 -r 0 --mp 6 -p {} --pf {}".format(feature_sampling_path, obj_path, xyz_path, fea_path, mask_path, para_pts_path, para_ptsface_path))
