@@ -651,7 +651,6 @@ void repair_tree_features(Mesh3d& m, const std::vector<int>& face_color, const s
 
 void repair_tree_features_maxflow(Mesh3d& m, const std::vector<int>& face_color, const std::vector<size_t>& invalid_colors, std::vector<std::pair<int, int>>& ungrouped_features)
 {
-	//bool flag_debug = true;
 	bool flag_debug = false;
 	std::set<std::pair<int, int>> ungrouped_features_set;
 	for (auto& pp : ungrouped_features)
@@ -664,7 +663,6 @@ void repair_tree_features_maxflow(Mesh3d& m, const std::vector<int>& face_color,
 	get_mesh_vert_faces(m, all_pts, all_faces);
 	std::vector<bool> invalid_color_map(face_color.size(), false);
 	for (auto cid : invalid_colors)
-		//invalid_color_set.insert(cid);
 		invalid_color_map[cid] = true;
 
 	for (size_t i = 0; i < face_color.size(); i++)
@@ -674,7 +672,7 @@ void repair_tree_features_maxflow(Mesh3d& m, const std::vector<int>& face_color,
 			all_invalid_faces.push_back(all_faces[i]);
 		}
 	}
-	
+
 	Mesh3d invalid_mesh;
 	invalid_mesh.load_mesh(all_pts, all_invalid_faces);
 
@@ -692,7 +690,6 @@ void repair_tree_features_maxflow(Mesh3d& m, const std::vector<int>& face_color,
 
 		HE_edge<double>* begin_edge = invalid_mesh.get_vertices_list()->at(id0)->edge;
 		HE_edge<double>* edge = invalid_mesh.get_vertices_list()->at(id0)->edge;
-		//if (edge != NULL && !invalid_mesh.is_on_boundary(edge)) //not boundary
 		if (edge != NULL)
 		{
 			do
@@ -707,9 +704,10 @@ void repair_tree_features_maxflow(Mesh3d& m, const std::vector<int>& face_color,
 			} while (edge != begin_edge);
 		}
 	}
-	
+
 
 	bool flag_patchbypatch = true;
+	//bool flag_patchbypatch = false;
 
 	//flip edge
 	std::vector<std::pair<int, int>> flipped_edges;
@@ -718,8 +716,10 @@ void repair_tree_features_maxflow(Mesh3d& m, const std::vector<int>& face_color,
 	//repair patch by patch
 	if (flag_patchbypatch)
 	{
-		//for (auto cid : invalid_colors)
-		auto cid = invalid_colors[0];
+		size_t repair_patch_id = 0;
+
+		auto cid = invalid_colors[repair_patch_id];
+		//for (auto cid : invalid_colors) //decompose all
 		{
 			std::vector<std::vector<size_t>> cur_faces;
 			for (size_t i = 0; i < face_color.size(); i++)
@@ -744,6 +744,7 @@ void repair_tree_features_maxflow(Mesh3d& m, const std::vector<int>& face_color,
 				HE_edge<double>* begin_edge = sub_mesh.get_vertices_list()->at(id0)->edge;
 				HE_edge<double>* edge = sub_mesh.get_vertices_list()->at(id0)->edge;
 				bool flag_found = false;
+				//if (edge != NULL && !sub_mesh.is_on_boundary(edge)) //not boundary
 				if (edge != NULL)
 				{
 					do
@@ -933,7 +934,7 @@ void repair_tree_features_maxflow(Mesh3d& m, const std::vector<int>& face_color,
 					{
 						concave_faces.push_back(cur_faces[node]);
 					}
-					
+
 					Mesh3d convexmesh, concavemesh;
 					convexmesh.load_mesh(all_pts, convex_faces);
 					concavemesh.load_mesh(all_pts, concave_faces);
@@ -976,8 +977,8 @@ void repair_tree_features_maxflow(Mesh3d& m, const std::vector<int>& face_color,
 					mesh_part1.write_obj("part1.obj");
 					mesh_part2.write_obj("part2.obj");
 				}
-				
-				
+
+
 				std::vector<bool> flag_part1(n_node - 2, false), flag_part2(n_node - 2, false);
 				for (auto f : part1)
 					flag_part1[f] = true;
@@ -1004,127 +1005,24 @@ void repair_tree_features_maxflow(Mesh3d& m, const std::vector<int>& face_color,
 	}
 	else
 	{
-	if (true)
-	{
-		
-		std::vector<std::vector<size_t>> cur_faces;
-		for (size_t i = 0; i < face_color.size(); i++)
+		if (true)
 		{
-			if (invalid_color_map[face_color[i] - 1])
+
+			std::vector<std::vector<size_t>> cur_faces;
+			for (size_t i = 0; i < face_color.size(); i++)
 			{
-				cur_faces.push_back(all_faces[i]);
-			}
-		}
-		Mesh3d sub_mesh;
-		sub_mesh.load_mesh(all_pts, cur_faces);
-		sub_mesh.write_obj("invalidpatch.obj");
-
-		//submesh might need to be adjusted
-		std::vector<bool> flag_he_feature(sub_mesh.get_num_of_edges(), false);
-		std::vector<int> flag_he_type(sub_mesh.get_num_of_edges(), 0);
-		for (size_t i = 0; i < ungrouped_features.size(); i++)
-		{
-			int id0 = ungrouped_features[i].first;
-			int id1 = ungrouped_features[i].second;
-
-			HE_edge<double>* begin_edge = sub_mesh.get_vertices_list()->at(id0)->edge;
-			HE_edge<double>* edge = sub_mesh.get_vertices_list()->at(id0)->edge;
-			bool flag_found = false;
-			if (edge != NULL && !sub_mesh.is_on_boundary(edge)) //not boundary
-			{
-				do
+				if (invalid_color_map[face_color[i] - 1])
 				{
-					if (id1 == edge->vert->id)
-					{
-						flag_he_feature[edge->id] = true;
-						flag_he_feature[edge->pair->id] = true;
-						int edge_type = get_mesh_edge_type(sub_mesh, edge->id);
-						flag_he_type[edge->id] = edge_type;
-						flag_he_type[edge->pair->id] = edge_type;
-						flag_found = true;
-						break;
-					}
-					edge = edge->pair->next;
-				} while (edge != begin_edge);
-			}
-		}
-
-		//check mesh validness: a triangle should not have two nb edge with different convexity
-		bool flag_mesh_valid = true;
-		for (size_t i = 0; i < sub_mesh.get_num_of_faces(); i++)
-		{
-			if (sub_mesh.is_on_boundary(sub_mesh.get_face(i)))
-			{
-				int convex_count = 0, concave_count = 0;
-				HE_edge<double>* edge = sub_mesh.get_face(i)->edge;
-				do
-				{
-					if (flag_he_feature[edge->id])
-					{
-						if (flag_he_type[edge->id] == 1)
-						{
-							convex_count += 1;
-						}
-						else if (flag_he_type[edge->id] == 2)
-						{
-							concave_count += 1;
-						}
-					}
-					edge = edge->next;
-				} while (edge != sub_mesh.get_face(i)->edge);
-
-
-				if (convex_count > 0 && concave_count > 0)
-				{
-					flag_mesh_valid = false;
-					//edge flip
-					edge = sub_mesh.get_face(i)->edge; //find no feature curve
-					do
-					{
-						if (!flag_he_feature[edge->id])
-						{
-							break;
-						}
-					} while (edge != sub_mesh.get_face(i)->edge);
-
-					if (sub_mesh.is_on_boundary(edge))
-					{
-						std::cout << "all 3 edge of triangle " << i << " are features" << std::endl;
-						int a = 0;
-					}
-					else
-					{
-						int oppo_face_id = edge->pair->face->id;
-						std::vector<size_t> newf1, newf2;
-						//edge flip
-						newf1.push_back(edge->vert->id);
-						newf1.push_back(edge->next->vert->id);
-						newf1.push_back(edge->pair->next->id);
-
-						edge = edge->pair;
-						newf2.push_back(edge->vert->id);
-						newf2.push_back(edge->next->vert->id);
-						newf2.push_back(edge->pair->next->id);
-
-						cur_faces[i] = newf1;
-						cur_faces[oppo_face_id] = newf2;
-					}
+					cur_faces.push_back(all_faces[i]);
 				}
-
 			}
-		}
-
-		if (!flag_mesh_valid)
-		{
+			Mesh3d sub_mesh;
 			sub_mesh.load_mesh(all_pts, cur_faces);
-			sub_mesh.write_obj("invalidpatch_repair.obj");
+			sub_mesh.write_obj("invalidpatch.obj");
+
+			//submesh might need to be adjusted
 			std::vector<bool> flag_he_feature(sub_mesh.get_num_of_edges(), false);
 			std::vector<int> flag_he_type(sub_mesh.get_num_of_edges(), 0);
-
-			flag_he_feature.clear();
-			flag_he_type.clear();
-			flag_he_feature.resize(sub_mesh.get_num_of_edges(), false);
-			flag_he_type.resize(sub_mesh.get_num_of_edges(), 0);
 			for (size_t i = 0; i < ungrouped_features.size(); i++)
 			{
 				int id0 = ungrouped_features[i].first;
@@ -1134,7 +1032,6 @@ void repair_tree_features_maxflow(Mesh3d& m, const std::vector<int>& face_color,
 				HE_edge<double>* edge = sub_mesh.get_vertices_list()->at(id0)->edge;
 				bool flag_found = false;
 				if (edge != NULL && !sub_mesh.is_on_boundary(edge)) //not boundary
-				//if (edge != NULL)
 				{
 					do
 					{
@@ -1152,120 +1049,226 @@ void repair_tree_features_maxflow(Mesh3d& m, const std::vector<int>& face_color,
 					} while (edge != begin_edge);
 				}
 			}
-		}
 
-		//mesh constructed, build max cut algorithm
-		int n_node = sub_mesh.get_num_of_faces() + 2;
-		std::set<int> convex_node, concave_node;
-		for (size_t i = 0; i < sub_mesh.get_num_of_edges(); i++)
-		{
-			if (flag_he_type[i] == 1)
+			//check mesh validness: a triangle should not have two nb edge with different convexity
+			bool flag_mesh_valid = true;
+			for (size_t i = 0; i < sub_mesh.get_num_of_faces(); i++)
 			{
-				//convex
-				if (sub_mesh.get_edge(i)->face != NULL)
+				if (sub_mesh.is_on_boundary(sub_mesh.get_face(i)))
 				{
-					convex_node.insert(sub_mesh.get_edge(i)->face->id);
-				}
-			}
-			else if (flag_he_type[i] == 2)
-			{
-				//concave
-				if (sub_mesh.get_edge(i)->face != NULL)
-				{
-					concave_node.insert(sub_mesh.get_edge(i)->face->id);
-				}
-			}
-		}
-
-		assert(!convex_node.empty() && !concave_node.empty());
-
-		if (!convex_node.empty() && !concave_node.empty())
-		{
-			int s = sub_mesh.get_num_of_faces();
-			int t = s + 1;
-			double max_cap = 1.0 * sub_mesh.get_num_of_faces();
-			std::vector<std::pair<int, int>> graph_edges;
-			std::vector<double> graph_edgecap;
-
-
-			//s to convex
-			for (auto node : convex_node)
-			{
-				graph_edges.push_back(std::pair<int, int>(s, node));
-				graph_edgecap.push_back(max_cap);
-			}
-
-			//concave to t
-			for (auto node : concave_node)
-			{
-				graph_edges.push_back(std::pair<int, int>(node, t));
-				graph_edgecap.push_back(max_cap);
-			}
-
-			//other parts
-			for (size_t i = 0; i < sub_mesh.get_num_of_edges(); i++)
-			{
-				if (!sub_mesh.is_on_boundary(sub_mesh.get_edge(i)) && flag_he_type[i] == 0)
-				{
-					//not boundary, not convex or concave
-					graph_edges.push_back(std::pair<int, int>(sub_mesh.get_edge(i)->face->id, sub_mesh.get_edge(i)->pair->face->id));
-					graph_edgecap.push_back(1.0);
-				}
-			}
-
-			std::vector<int> part1, part2; 
-			MinCutfromMaxFlow(n_node, graph_edges, graph_edgecap, s, t, part1, part2);
-
-			//get min cut by neighbor info
-			std::vector<bool> flag_part1(n_node - 2, false), flag_part2(n_node - 2, false);
-			for (auto f : part1)
-				flag_part1[f] = true;
-
-			for (auto f : part2)
-				flag_part2[f] = true;
-
-			for (size_t i = 0; i < sub_mesh.get_num_of_edges(); i++)
-			{
-				auto edge = sub_mesh.get_edge(i);
-				if (!sub_mesh.is_on_boundary(edge))
-				{
-					int f0 = edge->face->id, f1 = edge->pair->face->id;
-					if (flag_part1[f0] && flag_part2[f1])
+					int convex_count = 0, concave_count = 0;
+					HE_edge<double>* edge = sub_mesh.get_face(i)->edge;
+					do
 					{
-						int id0 = edge->vert->id, id1 = edge->pair->vert->id;
-						ungrouped_features_set.insert(std::pair<int, int>(std::min(id0, id1), std::max(id0, id1)));
+						if (flag_he_feature[edge->id])
+						{
+							if (flag_he_type[edge->id] == 1)
+							{
+								convex_count += 1;
+							}
+							else if (flag_he_type[edge->id] == 2)
+							{
+								concave_count += 1;
+							}
+						}
+						edge = edge->next;
+					} while (edge != sub_mesh.get_face(i)->edge);
+
+
+					if (convex_count > 0 && concave_count > 0)
+					{
+						flag_mesh_valid = false;
+						//edge flip
+						edge = sub_mesh.get_face(i)->edge; //find no feature curve
+						do
+						{
+							if (!flag_he_feature[edge->id])
+							{
+								break;
+							}
+						} while (edge != sub_mesh.get_face(i)->edge);
+
+						if (sub_mesh.is_on_boundary(edge))
+						{
+							std::cout << "all 3 edge of triangle " << i << " are features" << std::endl;
+							int a = 0;
+						}
+						else
+						{
+							int oppo_face_id = edge->pair->face->id;
+							std::vector<size_t> newf1, newf2;
+							//edge flip
+							newf1.push_back(edge->vert->id);
+							newf1.push_back(edge->next->vert->id);
+							newf1.push_back(edge->pair->next->id);
+
+							edge = edge->pair;
+							newf2.push_back(edge->vert->id);
+							newf2.push_back(edge->next->vert->id);
+							newf2.push_back(edge->pair->next->id);
+
+							cur_faces[i] = newf1;
+							cur_faces[oppo_face_id] = newf2;
+						}
+					}
+
+				}
+			}
+
+			if (!flag_mesh_valid)
+			{
+				sub_mesh.load_mesh(all_pts, cur_faces);
+				sub_mesh.write_obj("invalidpatch_repair.obj");
+				//submesh might need to be adjusted
+				std::vector<bool> flag_he_feature(sub_mesh.get_num_of_edges(), false);
+				std::vector<int> flag_he_type(sub_mesh.get_num_of_edges(), 0);
+
+				flag_he_feature.clear();
+				flag_he_type.clear();
+				flag_he_feature.resize(sub_mesh.get_num_of_edges(), false);
+				flag_he_type.resize(sub_mesh.get_num_of_edges(), 0);
+				for (size_t i = 0; i < ungrouped_features.size(); i++)
+				{
+					int id0 = ungrouped_features[i].first;
+					int id1 = ungrouped_features[i].second;
+
+					HE_edge<double>* begin_edge = sub_mesh.get_vertices_list()->at(id0)->edge;
+					HE_edge<double>* edge = sub_mesh.get_vertices_list()->at(id0)->edge;
+					bool flag_found = false;
+					if (edge != NULL && !sub_mesh.is_on_boundary(edge)) //not boundary
+					{
+						do
+						{
+							if (id1 == edge->vert->id)
+							{
+								flag_he_feature[edge->id] = true;
+								flag_he_feature[edge->pair->id] = true;
+								int edge_type = get_mesh_edge_type(sub_mesh, edge->id);
+								flag_he_type[edge->id] = edge_type;
+								flag_he_type[edge->pair->id] = edge_type;
+								flag_found = true;
+								break;
+							}
+							edge = edge->pair->next;
+						} while (edge != begin_edge);
 					}
 				}
 			}
 
-			//visualze part1 and part2
-			std::vector<std::vector<size_t>> part1_faces, part2_faces;
-			for (auto f : part1)
+			//mesh constructed, build max cut algorithm
+			int n_node = sub_mesh.get_num_of_faces() + 2;
+			std::set<int> convex_node, concave_node;
+			for (size_t i = 0; i < sub_mesh.get_num_of_edges(); i++)
 			{
-				part1_faces.push_back(cur_faces[f]);
+				if (flag_he_type[i] == 1)
+				{
+					//convex
+					if (sub_mesh.get_edge(i)->face != NULL)
+					{
+						convex_node.insert(sub_mesh.get_edge(i)->face->id);
+					}
+				}
+				else if (flag_he_type[i] == 2)
+				{
+					//concave
+					if (sub_mesh.get_edge(i)->face != NULL)
+					{
+						concave_node.insert(sub_mesh.get_edge(i)->face->id);
+					}
+				}
 			}
 
-			for (auto f : part2)
-			{
-				part2_faces.push_back(cur_faces[f]);
-			}
+			assert(!convex_node.empty() && !concave_node.empty());
 
-			Mesh3d mesh_part1, mesh_part2;
-			mesh_part1.load_mesh(all_pts, part1_faces);
-			mesh_part2.load_mesh(all_pts, part2_faces);
-			mesh_part1.write_obj("part1.obj");
-			mesh_part2.write_obj("part2.obj");
+			if (!convex_node.empty() && !concave_node.empty())
+			{
+				int s = sub_mesh.get_num_of_faces();
+				int t = s + 1;
+				double max_cap = 1.0 * sub_mesh.get_num_of_faces();
+				std::vector<std::pair<int, int>> graph_edges;
+				std::vector<double> graph_edgecap;
+
+
+				//s to convex
+				for (auto node : convex_node)
+				{
+					graph_edges.push_back(std::pair<int, int>(s, node));
+					graph_edgecap.push_back(max_cap);
+				}
+
+				//concave to t
+				for (auto node : concave_node)
+				{
+					graph_edges.push_back(std::pair<int, int>(node, t));
+					graph_edgecap.push_back(max_cap);
+				}
+
+				//other parts
+				for (size_t i = 0; i < sub_mesh.get_num_of_edges(); i++)
+				{
+					if (!sub_mesh.is_on_boundary(sub_mesh.get_edge(i)) && flag_he_type[i] == 0)
+					{
+						//not boundary, not convex or concave
+						graph_edges.push_back(std::pair<int, int>(sub_mesh.get_edge(i)->face->id, sub_mesh.get_edge(i)->pair->face->id));
+						graph_edgecap.push_back(1.0);
+					}
+				}
+
+				std::vector<int> part1, part2;
+				MinCutfromMaxFlow(n_node, graph_edges, graph_edgecap, s, t, part1, part2);
+
+				//get min cut by neighbor info
+				std::vector<bool> flag_part1(n_node - 2, false), flag_part2(n_node - 2, false);
+				for (auto f : part1)
+					flag_part1[f] = true;
+
+				for (auto f : part2)
+					flag_part2[f] = true;
+
+				for (size_t i = 0; i < sub_mesh.get_num_of_edges(); i++)
+				{
+					auto edge = sub_mesh.get_edge(i);
+					if (!sub_mesh.is_on_boundary(edge))
+					{
+						int f0 = edge->face->id, f1 = edge->pair->face->id;
+						if (flag_part1[f0] && flag_part2[f1])
+						{
+							int id0 = edge->vert->id, id1 = edge->pair->vert->id;
+							ungrouped_features_set.insert(std::pair<int, int>(std::min(id0, id1), std::max(id0, id1)));
+						}
+					}
+				}
+
+				//visualze part1 and part2
+				std::vector<std::vector<size_t>> part1_faces, part2_faces;
+				for (auto f : part1)
+				{
+					part1_faces.push_back(cur_faces[f]);
+				}
+
+				for (auto f : part2)
+				{
+					part2_faces.push_back(cur_faces[f]);
+				}
+
+				Mesh3d mesh_part1, mesh_part2;
+				mesh_part1.load_mesh(all_pts, part1_faces);
+				mesh_part2.load_mesh(all_pts, part2_faces);
+				mesh_part1.write_obj("part1.obj");
+				mesh_part2.write_obj("part2.obj");
+
+			}
 
 		}
+	}
 
-	}
-	}
-	
-	
+
 	ungrouped_features = std::vector<std::pair<int, int>>(ungrouped_features_set.begin(), ungrouped_features_set.end());
 
 	if (!flipped_edges.empty())
 	{
+		//update all faces
+		//for (auto& pp : flipped_edges)
 		for (size_t i = 0; i < flipped_edges.size(); i++)
 		{
 			auto pp = flipped_edges[i];
@@ -1304,11 +1307,12 @@ void repair_tree_features_maxflow(Mesh3d& m, const std::vector<int>& face_color,
 		}
 
 		m.load_mesh(all_pts, all_faces);
-		
+
 	}
 
 	return;
 }
+
 
 bool load_xyz_file(const char* filename, std::vector<vec3d>& pts, std::vector<vec3d>& normals)
 {

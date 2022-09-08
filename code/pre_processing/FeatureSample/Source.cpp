@@ -940,14 +940,15 @@ int main(int argc, char** argv)
 				{ 
 					flag_construct_tree = get_tree_from_convex_graph(connectivity, flag_fpconvex, flag_convex, tree, 0, invalid_subgraph);
 					
-					if (!flag_construct_tree)
+					//try with !flag_convex root node, no longer used.
+					/*if (!flag_construct_tree)
 					{
 						delete tree;
 						tree = new TreeNode<size_t>;
 						invalid_subgraph.clear();
 						flag_construct_tree = get_tree_from_convex_graph(connectivity, flag_fpconvex, !flag_convex, tree, 0, invalid_subgraph);
 
-					}
+					}*/
 				}
 
 				if (!flag_construct_tree)
