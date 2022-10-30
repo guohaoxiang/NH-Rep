@@ -8,7 +8,7 @@ This is the official implementation of the following paper:
 
 Guo H X, Liu Y, Pan H, Guo B N. NH-Rep: Neural Halfspace Representations for Implicit Conversion of B-Rep Solids. 
 
-[Paper(to do)]() | [Project Page(to do)]()
+[Paper](https://arxiv.org/abs/2209.10191) | [Project Page](https://guohaoxiang.github.io/projects/nhrep.html)
 
 Abstract: _We present a novel implicit representation  -- neural halfspace representation (NH-Rep), to convert manifold B-Rep solids to implicit representation. NH-Rep is a Boolean tree built on a set of implicit functions represented by neural network, and the composite Boolean function is capable of representing solid geometry while preserving sharp features. We propose an efficient algorithm to extract the Boolean tree from a Manifold B-Rep solid and devise a neural-network-based optimization approach to compute implicit functions.
 We demonstrate the high quality offered by our conversion algorithm on ten thousand manifold B-Rep CAD models that contain various curved patches including NURBS, and the superiority of our learning approach over other representative implicit conversion algorithms in terms of surface reconstruction, sharp feature preservation, signed distance field approximation, and robustness to various surface geometry, as well as applications supported by NH-Rep._
@@ -122,10 +122,17 @@ To evaluate the DE and IoU metric, you need to download ground truth mesh data f
 
 DE and IoU will be stored in the *_eval.txt files.
 
-## Citation (to do)
+## Citation
 
 If you use our code for research, please cite our paper:
 ```
+@article{Guo2022nhrep,
+  title={NH-Rep: Neural Halfspace Representations for Implicit Conversion of B-Rep Solids},
+  author={Guo, Hao-Xiang and Yang, Liu and Pan, Hao and Guo, Baining},
+  journal={ACM Transactions on Graphics (TOG)},
+  year={2022},
+  publisher={ACM New York, NY, USA}
+}
 ```
 
 ## License
