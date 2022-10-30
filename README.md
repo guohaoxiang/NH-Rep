@@ -45,7 +45,7 @@ You can also setup the environment with conda:
         $ conda env create -f environment.yml
         $ conda activate nhrep
 
-Meanwhile, you need to build iso-surface generator mannually, please refer [here](code/IsoSurfaceGen/README.md). The built executable file lies in _code/IsoSurfaceGen/build/App/console_pytorch/ISG_console_pytorch_.
+Meanwhile, you need to build iso-surface generator mannually, please refer [here](https://github.com/xueyuhanlang/IsoSurfacing). The built executable file lies in _code/IsoSurfacing/build/App/console_pytorch/ISG_console_pytorch_.
 
 After that, you can conduct implicit conversion and iso-surface extraction as mentioned above.
 
