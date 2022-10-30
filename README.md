@@ -116,7 +116,7 @@ Statistics will be stored in _eval_results.csv_.
 
 The *.ptangle* file used for evaluation stores position and dihedral angle (in degree) of points uniformly sampled on sharp features of a model.
 
-To evaluate the DE and IoU metric, you need to download ground truth mesh data from [BaiduYun](https://pan.baidu.com/s/1uob8xASuUbXzJyuo9EsOZA?pwd=asdf) or [OneDrive](https://1drv.ms/u/s!Ar3e2GVr5NQN9XTzUmZ4XaDyXKkf?e=TBTgJR), and unzip it under the root folder. You also need to build _code/IsoSurfaceGen_, then switch to folder _PATH_TO_NH-REP/data/output_data_, run:
+To evaluate the DE and IoU metric, you need to download ground truth mesh data from [BaiduYun](https://pan.baidu.com/s/1uob8xASuUbXzJyuo9EsOZA?pwd=asdf) or [OneDrive](https://1drv.ms/u/s!Ar3e2GVr5NQN9XTzUmZ4XaDyXKkf?e=TBTgJR), and unzip it under the root folder. You also need to build _code/IsoSurfacing_, then switch to folder _PATH_TO_NH-REP/data/output_data_, run:
 
         $ python eval_de_iou.py
 
