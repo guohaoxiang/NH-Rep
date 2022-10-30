@@ -26,4 +26,4 @@ for f in files:
 	if flag_process:
 		gt_file = os.path.join(gt_folder, f.replace('_50k_model_h.pt', '_normalized.obj'))
 		print(f)
-		os.system('CUDA_VISIBLE_DEVICES={} ../../code/IsoSurfaceGen/build/App/evaluation/evaluation -i {} -g {}'.format(cuda_device, f, gt_file))
+		os.system('CUDA_VISIBLE_DEVICES={} ../../code/IsoSurfacing/build/App/evaluation/evaluation -i {} -g {}'.format(cuda_device, f, gt_file))
