@@ -17,6 +17,11 @@ The code has been tested on a Ubuntu 18.04 server with CUDA 10.2 installed.
 
 ## Installation
 
+Please first clone this repo with its submodules:
+        
+        $ git clone --recursive https://github.com/guohaoxiang/NH-Rep.git
+
+Then set up the environment via Docker or Anaconda.
 
 **Via Docker**
 
