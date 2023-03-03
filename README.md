@@ -4,7 +4,7 @@
 <img src="/images/nhrep_teaser.png" width="1000">
 </p>
 
-This is the official implementation of the following paper:
+This is the official implementation of SIGGRAPH Asia 2022 paper:
 
 Guo H X, Liu Y, Pan H, Guo B N. NH-Rep: Neural Halfspace Representations for Implicit Conversion of B-Rep Solids. 
 
