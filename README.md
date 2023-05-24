@@ -1,4 +1,4 @@
-# NH-Rep
+# NH-Rep: Implicit Conversion of Manifold B-Rep Solids by Neural Halfspace Representation
 
 <p align="center"> 
 <img src="/images/nhrep_teaser.png" width="1000">
@@ -6,7 +6,7 @@
 
 This is the official implementation of SIGGRAPH Asia 2022 paper:
 
-Guo H X, Liu Y, Pan H, Guo B N. NH-Rep: Neural Halfspace Representations for Implicit Conversion of B-Rep Solids. 
+Guo H X, Liu Y, Pan H, Guo B N. Implicit Conversion of Manifold B-Rep Solids by Neural Halfspace Representation. 
 
 [Paper](https://arxiv.org/abs/2209.10191) | [Project Page](https://guohaoxiang.github.io/projects/nhrep.html)
 
