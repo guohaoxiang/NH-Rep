@@ -132,7 +132,7 @@ DE and IoU will be stored in the *_eval.txt files.
 If you use our code for research, please cite our paper:
 ```
 @article{Guo2022nhrep,
-  title={NH-Rep: Neural Halfspace Representations for Implicit Conversion of B-Rep Solids},
+  title={Implicit Conversion of Manifold B-Rep Solids by Neural Halfspace Representation},
   author={Guo, Hao-Xiang and Yang, Liu and Pan, Hao and Guo, Baining},
   journal={ACM Transactions on Graphics (TOG)},
   year={2022},
